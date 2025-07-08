@@ -1,171 +1,160 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Eka Racing - Ultimate</title>
- <style>
-  body {
-    margin: 0;
-    overflow: hidden;
-    background: linear-gradient(to bottom, #111 0%, #222 100%);
-    font-family: 'Segoe UI', sans-serif;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-  }
+  <title>Eka Racing - Pro UI</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle at center, #111 0%, #000 100%);
+      overflow: hidden;
+      font-family: 'Segoe UI', sans-serif;
+    }
+    #gameContainer {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 800px;
+      height: 600px;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 0 30px rgba(0, 255, 255, 0.3), 0 0 80px rgba(0, 255, 255, 0.2) inset;
+      background: linear-gradient(to bottom, #111, #1e1e1e);
+    }
+    #gameCanvas {
+      display: block;
+    }
 
-  #gameContainer {
-    position: relative;
-    width: 800px;
-    height: 600px;
-    border-radius: 20px;
-    overflow: hidden;
-    box-shadow: 0 0 30px rgba(0, 255, 255, 0.4);
-    background: #000;
-  }
+    /* HUD */
+    #scoreDisplay, #levelDisplay, #exitBtn {
+      position: absolute;
+      padding: 8px 16px;
+      font-size: 20px;
+      color: white;
+      z-index: 10;
+      text-shadow: 0 0 8px cyan;
+      background: rgba(0, 0, 0, 0.4);
+      border-radius: 6px;
+    }
+    #scoreDisplay {
+      top: 10px;
+      left: 10px;
+    }
+    #levelDisplay {
+      top: 10px;
+      right: 10px;
+    }
+    #exitBtn {
+      top: 50px;
+      right: 10px;
+      background: rgba(255, 50, 50, 0.8);
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+    }
 
-  #gameCanvas {
-    display: block;
-    border-radius: 20px;
-  }
+    /* Loading screen */
+    #loadingScreen {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background: #000d;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+      color: white;
+      font-size: 20px;
+    }
+    .loader {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      border: 6px solid #333;
+      border-top: 6px solid cyan;
+      animation: spin 1s linear infinite;
+      margin-bottom: 20px;
+    }
 
-  #scoreDisplay, #levelDisplay {
-    position: absolute;
-    top: 15px;
-    font-size: 20px;
-    padding: 5px 15px;
-    background: rgba(0, 0, 0, 0.6);
-    border-radius: 10px;
-    color: #0ff;
-    font-weight: bold;
-    z-index: 100;
-    box-shadow: 0 0 5px #0ff;
-  }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
 
-  #scoreDisplay {
-    left: 15px;
-  }
+    /* Game Over */
+    #gameOverScreen {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.8);
+      color: white;
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 200;
+    }
+    .game-over-title {
+      font-size: 50px;
+      font-weight: bold;
+      margin-bottom: 20px;
+      color: red;
+      text-shadow: 0 0 10px #ff0000;
+    }
+    .final-score {
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+    .game-btn {
+      background: linear-gradient(45deg, #00c6ff, #0072ff);
+      border: none;
+      padding: 12px 24px;
+      border-radius: 25px;
+      color: white;
+      font-size: 18px;
+      cursor: pointer;
+      margin: 10px;
+      transition: 0.3s ease;
+    }
+    .game-btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 15px #00c6ff88;
+    }
 
-  #levelDisplay {
-    right: 15px;
-  }
-
-  #exitBtn {
-    position: absolute;
-    top: 60px;
-    right: 15px;
-    padding: 6px 14px;
-    background: #ff2e2e;
-    border: none;
-    border-radius: 10px;
-    font-size: 16px;
-    color: white;
-    cursor: pointer;
-    z-index: 100;
-    box-shadow: 0 0 10px rgba(255, 50, 50, 0.5);
-  }
-
-  #loadingScreen {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: #000;
-    color: #0ff;
-    font-size: 20px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    z-index: 200;
-    gap: 20px;
-  }
-
-  .loader {
-    width: 50px;
-    height: 50px;
-    border: 6px solid #333;
-    border-top: 6px solid #0ff;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-  }
-
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
-
-  #gameOverScreen {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    top: 0;
-    left: 0;
-    background: rgba(0, 0, 0, 0.85);
-    z-index: 300;
-    display: none;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    gap: 20px;
-  }
-
-  .game-over-title {
-    font-size: 48px;
-    color: #ff3333;
-    text-shadow: 0 0 10px #ff0000;
-  }
-
-  .game-btn {
-    padding: 12px 24px;
-    border-radius: 25px;
-    font-size: 18px;
-    background: linear-gradient(to right, #ff4c4c, #ff7777);
-    color: white;
-    border: none;
-    cursor: pointer;
-    transition: transform 0.2s;
-    box-shadow: 0 0 10px rgba(255, 80, 80, 0.5);
-  }
-
-  .game-btn:hover {
-    transform: scale(1.05);
-  }
-
-  #controls {
-    position: absolute;
-    bottom: 20px;
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    gap: 30px;
-    z-index: 100;
-  }
-
-  .control-btn {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    background: radial-gradient(circle at center, #0ff 0%, #055 100%);
-    border: 2px solid #0ff;
-    color: black;
-    font-size: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    font-weight: bold;
-    box-shadow: 0 0 10px #0ff;
-    user-select: none;
-    transition: transform 0.1s ease;
-  }
-
-  .control-btn:active {
-    transform: scale(0.9);
-  }
-</style>
-
+    /* Controls */
+    #controls {
+      position: absolute;
+      bottom: 20px;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      z-index: 10;
+    }
+    .control-btn {
+      width: 60px;
+      height: 60px;
+      background: rgba(0, 255, 255, 0.15);
+      border: 2px solid cyan;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: cyan;
+      font-size: 24px;
+      font-weight: bold;
+      user-select: none;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .control-btn:hover {
+      background: rgba(0, 255, 255, 0.3);
+      transform: scale(1.1);
+    }
+  </style>
 </head>
 <body>
   <div id="gameContainer">
@@ -176,7 +165,7 @@
 
     <div id="loadingScreen">
       <div class="loader"></div>
-      <div>Loading Eka Racing...</div>
+      <div>Loading Ultimate Eka Racing...</div>
     </div>
 
     <div id="gameOverScreen">
@@ -189,16 +178,23 @@
     <div id="controls">
       <div class="control-btn" id="leftBtn">←</div>
       <div class="control-btn" id="rightBtn">→</div>
-      <div class="control-btn" id="brakeBtn">⏹</div>
+      <div class="control-btn" id="brakeBtn">▐</div>
       <div class="control-btn" id="acceleratorBtn">▲</div>
     </div>
   </div>
 
-  <!-- Keep your existing JS script tag as-is here -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.2.4/pixi.min.js"></script>
   <script>
-    // paste your existing JS logic here, no need to change it!
-    // If needed, I can help refactor that script too separately.
+    // Keep this part exactly the same as your previous code
+    // Only UI has been updated above; game logic untouched
+    // Paste your JavaScript code (PIXIs, car drawing, gameState, game loop etc.) here
+    // For brevity, not repeating the full 1000+ lines JS from your previous post,
+    // but you can simply take your original <script> and paste it right here.
+
+    // Example:
+    // <script> ... your full working JS here ... </script>
+
+    // I can paste the full logic again if you need it re-integrated.
   </script>
 </body>
 </html>
