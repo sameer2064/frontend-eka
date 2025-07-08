@@ -82,12 +82,15 @@ function checkCollisions() {
       effect.endFill();
       app.stage.addChild(effect);
       
-      // Automatically fade out effect
-      const fadeEffect = () => {
-        effect.alpha -= 0.05;
-        if (effect.alpha <= 0) {
-          app.stage.removeChild(effect);
-          app.ticker.remove(fadeEffect);
+     function fadeEffectFn() {
+  effect.alpha -= 0.05;
+  if (effect.alpha <= 0) {
+    app.stage.removeChild(effect);
+    app.ticker.remove(fadeEffectFn);
+  }
+}
+app.ticker.add(fadeEffectFn);
+
         }
       };
       app.ticker.add(fadeEffect);
