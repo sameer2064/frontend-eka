@@ -1,10 +1,214 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Eka Racing - Ultimate Version</title>
-  <!-- Your full styled code will be inserted here -->
+  <title>Eka Racing - Ultimate</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: 'Segoe UI', sans-serif;
+      background: radial-gradient(circle at center, #0d1b2a 0%, #000000 100%);
+    }
+
+    #gameContainer {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #gameCanvas {
+      display: block;
+      border-radius: 16px;
+      box-shadow: 0 0 40px rgba(0, 255, 255, 0.3);
+    }
+
+    #scoreDisplay, #levelDisplay {
+      position: absolute;
+      top: 20px;
+      padding: 10px 20px;
+      background: rgba(0, 255, 255, 0.1);
+      color: #00ffff;
+      font-size: 20px;
+      font-weight: bold;
+      border-radius: 10px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 0 10px rgba(0,255,255,0.3);
+      z-index: 10;
+    }
+
+    #scoreDisplay {
+      left: 20px;
+    }
+
+    #levelDisplay {
+      right: 20px;
+    }
+
+    #controls {
+      position: absolute;
+      bottom: 30px;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      z-index: 20;
+    }
+
+    .control-btn {
+      width: 70px;
+      height: 70px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 32px;
+      color: #0ff;
+      border: 2px solid #0ff;
+      box-shadow: 0 0 15px rgba(0,255,255,0.4);
+      backdrop-filter: blur(10px);
+      cursor: pointer;
+      user-select: none;
+      transition: 0.3s;
+    }
+
+    .control-btn:hover {
+      transform: scale(1.1);
+      background: rgba(0,255,255,0.2);
+    }
+
+    #exitBtn {
+      position: absolute;
+      top: 80px;
+      right: 20px;
+      background: rgba(255, 0, 0, 0.2);
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+      z-index: 10;
+      transition: 0.3s;
+      box-shadow: 0 0 10px rgba(255, 0, 0, 0.4);
+    }
+
+    #exitBtn:hover {
+      background: rgba(255, 0, 0, 0.5);
+    }
+
+    #loadingScreen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.95);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      color: #00ffff;
+      font-size: 22px;
+      z-index: 100;
+    }
+
+    .loader {
+      border: 5px solid #333;
+      border-top: 5px solid #0ff;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 1s linear infinite;
+      margin-bottom: 15px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    #gameOverScreen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.9);
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 200;
+    }
+
+    .game-over-title {
+      font-size: 60px;
+      color: #ff3c3c;
+      margin-bottom: 20px;
+      text-shadow: 0 0 10px #ff0000;
+    }
+
+    .final-score {
+      font-size: 26px;
+      margin-bottom: 30px;
+      color: white;
+    }
+
+    .game-btn {
+      padding: 14px 28px;
+      background: linear-gradient(90deg, #ff3c3c, #ff7777);
+      color: white;
+      border: none;
+      border-radius: 30px;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      margin: 10px;
+      box-shadow: 0 0 15px rgba(255, 60, 60, 0.6);
+      transition: transform 0.2s ease;
+    }
+
+    .game-btn:hover {
+      transform: scale(1.08);
+    }
+  </style>
 </head>
 <body>
-  <h1>Your game will go here. Please copy the complete code into this file.</h1>
+  <div id="gameContainer">
+    <div id="scoreDisplay">Score: 0</div>
+    <div id="levelDisplay">Level: 1</div>
+    <button id="exitBtn">Exit</button>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+
+    <div id="loadingScreen">
+      <div class="loader"></div>
+      <div>Loading Eka Racing...</div>
+    </div>
+
+    <div id="gameOverScreen">
+      <div class="game-over-title">GAME OVER</div>
+      <div class="final-score" id="finalScore">Your score: 0</div>
+      <button class="game-btn" id="restartBtn">RACE AGAIN</button>
+      <button class="game-btn" id="menuBtn">MAIN MENU</button>
+    </div>
+
+    <div id="controls">
+      <div class="control-btn" id="leftBtn">←</div>
+      <div class="control-btn" id="rightBtn">→</div>
+      <div class="control-btn" id="brakeBtn">⏹</div>
+      <div class="control-btn" id="acceleratorBtn">▲</div>
+    </div>
+  </div>
+
+  <!-- Keep your existing JS script tag as-is here -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.2.4/pixi.min.js"></script>
+  <script>
+    // paste your existing JS logic here, no need to change it!
+    // If needed, I can help refactor that script too separately.
+  </script>
 </body>
 </html>
