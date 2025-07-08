@@ -2,12 +2,29 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Eka Racing</title>
   <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Press+Start+2P&display=swap" rel="stylesheet">
 </head>
 <body>
-  <h1>Eka Racing</h1>
-  <p>Click below to start the game:</p>
-  <a href="game.html">Play the Game</a>
+  <div class="hero">
+    <h1>🔥 EKA RACING 🔥</h1>
+    <p class="subtitle">THE ULTIMATE STREET RACING EXPERIENCE</p>
+    <div class="leaderboard-preview">
+      <h3>TOP RACERS</h3>
+      <div id="top-scores"></div>
+    </div>
+    <a href="game.html" class="start-btn">START RACING 🚗💨</a>
+    <div class="features">
+      <div class="feature">⚡ NITRO BOOSTS</div>
+      <div class="feature">🏁 INFINITE TRACK</div>
+      <div class="feature">🏆 GLOBAL LEADERBOARD</div>
+    </div>
+  </div>
+  <audio id="bgMusic" loop>
+    <source src="https://assets.codepen.io/21542/hyperspeed-game-bg-music.mp3" type="audio/mpeg">
+  </audio>
+  <script src="landing.js"></script>
 </body>
 </html>
