@@ -2,14 +2,10 @@
 const gameState = {
   score: 0,
   speed: 0,
-  maxSpeed: 10,
-  acceleration: 0.05,
-  deceleration: 0.1,
   carX: 400,
   coins: [],
-  effects: [], // Separate array for visual effects
-  gameStarted: false,
-  loading: true,
+  effects: [],
+  gameActive: true,
   lastCoinTime: 0,
   coinInterval: 1000
 };
@@ -19,35 +15,19 @@ const app = new PIXI.Application({
   view: document.getElementById("gameCanvas"),
   width: 800,
   height: 600,
-  backgroundColor: 0x111111,
-  antialias: true
+  backgroundColor: 0x111111
 });
 
-// ========== GAME ELEMENTS ==========
-const road = new PIXI.Graphics();
-app.stage.addChild(road);
-
-// Road markings
-const roadMarkings = [];
-for (let i = 0; i < 20; i++) {
-  const marking = new PIXI.Graphics();
-  marking.beginFill(0xFFFFFF, 0.8);
-  marking.drawRect(-3, -15, 6, 30);
-  marking.endFill();
-  marking.x = 400;
-  marking.y = i * 30 - 30;
-  app.stage.addChild(marking);
-  roadMarkings.push(marking);
-}
-
-// Car
+// ========== SIMPLIFIED CAR ==========
 const car = new PIXI.Graphics();
-// [Previous car drawing code...]
+car.beginFill(0xFF0000);
+car.drawRect(-20, -30, 40, 60);
+car.endFill();
 car.x = gameState.carX;
 car.y = 500;
 app.stage.addChild(car);
 
-// ========== FIXED COIN SYSTEM ==========
+// ========== BULLETPROOF COIN SYSTEM ==========
 function createCoin() {
   const now = Date.now();
   if (now - gameState.lastCoinTime < gameState.coinInterval) return;
@@ -55,30 +35,29 @@ function createCoin() {
   gameState.lastCoinTime = now;
   
   const coin = new PIXI.Graphics();
-  coin.beginFill(0xFFD700);
-  coin.drawCircle(0, 0, 10);
-  coin.endFill();
   coin.beginFill(0xFFFF00);
-  coin.drawCircle(0, 0, 7);
+  coin.drawCircle(0, 0, 10);
   coin.endFill();
   
   coin.x = Math.random() * 400 + 200;
-  coin.y = -50;
+  coin.y = -30;
   app.stage.addChild(coin);
+  
+  // Store with unique ID
   gameState.coins.push({
-    sprite: coin,
-    collected: false
+    id: Date.now() + Math.random(),
+    sprite: coin
   });
 }
 
-// ========== FIXED COLLISION SYSTEM ==========
+// ========== ROCK-SOLID COLLISION ==========
 function checkCollisions() {
   const carBounds = car.getBounds();
   
-  for (let i = gameState.coins.length - 1; i >= 0; i--) {
-    const coin = gameState.coins[i];
-    if (coin.collected) continue;
-    
+  // Create temp array of coins to process
+  const coinsToCheck = [...gameState.coins];
+  
+  coinsToCheck.forEach(coin => {
     const coinBounds = coin.sprite.getBounds();
     
     if (carBounds.x + carBounds.width > coinBounds.x &&
@@ -86,102 +65,80 @@ function checkCollisions() {
         carBounds.y + carBounds.height > coinBounds.y &&
         carBounds.y < coinBounds.y + coinBounds.height) {
       
-      // Mark as collected
-      coin.collected = true;
+      // Remove from main array
+      gameState.coins = gameState.coins.filter(c => c.id !== coin.id);
       
-      // Increase score
-      gameState.score += 1;
+      // Remove from stage
+      app.stage.removeChild(coin.sprite);
+      
+      // Update score
+      gameState.score++;
       document.getElementById('scoreDisplay').textContent = `Score: ${gameState.score}`;
       
-      // Create collection effect
+      // Create effect (won't interfere with coins)
       const effect = new PIXI.Graphics();
-      effect.beginFill(0xFFFF00, 0.7);
+      effect.beginFill(0xFFA500, 0.7);
       effect.drawCircle(coin.sprite.x, coin.sprite.y, 15);
       effect.endFill();
       app.stage.addChild(effect);
-      gameState.effects.push({
-        sprite: effect,
-        alpha: 1
-      });
       
-      // Remove coin sprite
-      app.stage.removeChild(coin.sprite);
-      gameState.coins.splice(i, 1);
+      // Automatically fade out effect
+      const fadeEffect = () => {
+        effect.alpha -= 0.05;
+        if (effect.alpha <= 0) {
+          app.stage.removeChild(effect);
+          app.ticker.remove(fadeEffect);
+        }
+      };
+      app.ticker.add(fadeEffect);
     }
-  }
-}
-
-// ========== FIXED EFFECTS SYSTEM ==========
-function updateEffects() {
-  for (let i = gameState.effects.length - 1; i >= 0; i--) {
-    const effect = gameState.effects[i];
-    effect.alpha -= 0.02;
-    effect.sprite.alpha = effect.alpha;
-    
-    if (effect.alpha <= 0) {
-      app.stage.removeChild(effect.sprite);
-      gameState.effects.splice(i, 1);
-    }
-  }
-}
-
-// ========== FIXED GAME LOOP ==========
-function gameLoop(delta) {
-  if (!gameState.gameStarted) return;
-  
-  // Update road markings
-  roadMarkings.forEach(marking => {
-    marking.y += gameState.speed;
-    if (marking.y > 600) marking.y = -30;
   });
+}
+
+// ========== FAILSAFE GAME LOOP ==========
+function gameLoop() {
+  if (!gameState.gameActive) return;
   
-  // Create new coins
+  // Create coins
   createCoin();
   
-  // Move existing coins
+  // Move coins
   gameState.coins.forEach(coin => {
-    if (!coin.collected) {
-      coin.sprite.y += gameState.speed;
+    coin.sprite.y += 5 + gameState.speed;
+    if (coin.sprite.y > 630) {
+      app.stage.removeChild(coin.sprite);
+      gameState.coins = gameState.coins.filter(c => c.id !== coin.id);
     }
   });
   
   // Check collisions
   checkCollisions();
-  
-  // Update effects
-  updateEffects();
-  
-  // Draw road
-  road.clear();
-  road.beginFill(0x333333);
-  road.moveTo(150, 0);
-  road.lineTo(650, 0);
-  road.lineTo(700, 600);
-  road.lineTo(100, 600);
-  road.closePath();
-  road.endFill();
 }
 
-// ========== CONTROL FUNCTIONS ==========
+// ========== CONTROLS (ALWAYS WORKING) ==========
 function moveLeft() {
-  gameState.carX = Math.max(250, gameState.carX - 10);
+  if (!gameState.gameActive) return;
+  gameState.carX = Math.max(200, gameState.carX - 10);
   car.x = gameState.carX;
 }
 
 function moveRight() {
-  gameState.carX = Math.min(550, gameState.carX + 10);
+  if (!gameState.gameActive) return;
+  gameState.carX = Math.min(600, gameState.carX + 10);
   car.x = gameState.carX;
 }
 
 function accelerate() {
-  gameState.speed = Math.min(gameState.maxSpeed, gameState.speed + gameState.acceleration);
+  if (!gameState.gameActive) return;
+  gameState.speed = Math.min(10, gameState.speed + 0.1);
 }
 
 function brake() {
-  gameState.speed = Math.max(0, gameState.speed - gameState.deceleration);
+  if (!gameState.gameActive) return;
+  gameState.speed = Math.max(0, gameState.speed - 0.2);
 }
 
-// ========== INITIALIZE GAME ==========
+// ========== INITIALIZE ==========
 function initGame() {
   // Start game loop
   app.ticker.add(gameLoop);
@@ -195,8 +152,7 @@ function initGame() {
   // Hide loading screen
   setTimeout(() => {
     document.getElementById('loadingScreen').style.display = 'none';
-    gameState.gameStarted = true;
-  }, 2000);
+  }, 1000);
 }
 
 // Start the game
