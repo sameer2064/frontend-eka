@@ -2,12 +2,41 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Eka Racing Game</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Eka Racing - Game</title>
   <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Russo+One&display=swap" rel="stylesheet">
+  <base href="./">
 </head>
 <body>
-  <!-- PixiJS will append the game canvas here -->
-  <script src="https://pixijs.download/release/pixi.min.js"></script>
+  <div id="gameContainer">
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <div id="gameUI">
+      <div id="scoreDisplay">SCORE: 0</div>
+      <div id="nitroDisplay">NITRO: 100%</div>
+      <div id="speedDisplay">SPEED: 0</div>
+    </div>
+    <div id="gameOverModal" class="modal">
+      <div class="modal-content">
+        <h2>GAME OVER</h2>
+        <p id="finalScore">Your score: 0</p>
+        <input type="text" id="playerName" placeholder="Your Name" maxlength="15">
+        <button id="submitScore">SUBMIT SCORE</button>
+        <button id="restartGame">RACE AGAIN</button>
+        <div id="leaderboard"></div>
+      </div>
+    </div>
+    <div id="startModal" class="modal">
+      <div class="modal-content">
+        <h2>EKA RACING</h2>
+        <p>Use <span class="key">←</span> and <span class="key">→</span> to move</p>
+        <p>Press <span class="key">SPACE</span> for NITRO</p>
+        <button id="startGame">START RACE</button>
+      </div>
+    </div>
+  </div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.2.4/pixi.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
   <script src="game.js"></script>
 </body>
 </html>
