@@ -5,28 +5,29 @@ const app = new PIXI.Application({
   backgroundColor: 0x1e1e1e
 });
 
-PIXI.Assets.load([
-  "https://cdn.pixabay.com/photo/2012/04/25/00/19/race-car-41071_1280.png"
-]).then(([carTexture]) => {
-  const car = new PIXI.Sprite(carTexture);
-  car.anchor.set(0.5);
-  car.width = 80;
-  car.height = 100;
-  car.x = app.screen.width / 2;
+// Create a car sprite with a working image URL
+const carTexture = PIXI.Texture.from("https://i.ibb.co/M2gNnyq/car-blue.png");
+const car = new PIXI.Sprite(carTexture);
+
+car.anchor.set(0.5);
+car.width = 80;
+car.height = 100;
+car.x = app.screen.width / 2;
+car.y = app.screen.height - 100;
+
+app.stage.addChild(car);
+
+// Key controls
+window.addEventListener("keydown", (e) => {
+  if (e.key === "ArrowLeft") car.x -= 10;
+  if (e.key === "ArrowRight") car.x += 10;
+  if (e.key === " ") {
+    car.tint = 0x00ffff; // Nitro boost visual
+    setTimeout(() => car.tint = 0xffffff, 300);
+  }
+});
+
+// Animate road (placeholder for infinite scroll)
+app.ticker.add(() => {
   car.y = app.screen.height - 100;
-
-  app.stage.addChild(car);
-
-  window.addEventListener("keydown", (e) => {
-    if (e.key === "ArrowLeft") car.x -= 10;
-    if (e.key === "ArrowRight") car.x += 10;
-    if (e.key === " ") {
-      car.tint = 0x00ffff;
-      setTimeout(() => car.tint = 0xffffff, 300);
-    }
-  });
-
-  app.ticker.add(() => {
-    car.y = app.screen.height - 100;
-  });
 });
