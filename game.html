@@ -361,10 +361,10 @@
         gameState.maxSpeed += 1;
         gameState.obstacleInterval = Math.max(500, gameState.obstacleInterval - 200);
         
-        document.getElementById('levelDisplay').textContent = Level: ${gameState.level};
+        document.getElementById('levelDisplay').textContent = `Level: ${gameState.level}`;
         
         // Level up effect
-        const levelUpText = new PIXI.Text(LEVEL ${gameState.level}!, {
+        const levelUpText = new PIXI.Text(`LEVEL ${gameState.level}!`, {
           fontFamily: 'Arial',
           fontSize: 48,
           fill: '#00ff00',
@@ -407,7 +407,7 @@
           
           // Increase score
           gameState.score += 1;
-          document.getElementById('scoreDisplay').textContent = Score: ${gameState.score};
+          document.getElementById('scoreDisplay').textContent = `Score: ${gameState.score}`;
           
           // Check for level up
           checkLevelUp();
@@ -526,7 +526,7 @@
     // ========== GAME OVER ==========
     function gameOver() {
       gameState.gameActive = false;
-      document.getElementById('finalScore').textContent = Your score: ${gameState.score};
+      document.getElementById('finalScore').textContent = `Your score: ${gameState.score}`;
       document.getElementById('gameOverScreen').style.display = 'flex';
       
       // Create explosion effect
@@ -560,8 +560,8 @@
       gameState.gameActive = true;
       
       // Reset display
-      document.getElementById('scoreDisplay').textContent = Score: 0;
-      document.getElementById('levelDisplay').textContent = Level: 1;
+      document.getElementById('scoreDisplay').textContent = `Score: 0`;
+      document.getElementById('levelDisplay').textContent = `Level: 1`;
       document.getElementById('gameOverScreen').style.display = 'none';
       
       // Reset car position
