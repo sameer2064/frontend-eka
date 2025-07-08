@@ -1,0 +1,25 @@
+body {
+  margin: 0;
+  font-family: 'Segoe UI', sans-serif;
+  background: url('https://images.unsplash.com/photo-1516110833967-0b5716f8c44b') no-repeat center center/cover;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.hero {
+  background-color: rgba(0, 0, 0, 0.7);
+  padding: 3rem;
+  text-align: center;
+  border-radius: 15px;
+  color: white;
+}
+.start-btn {
+  margin-top: 1rem;
+  padding: 0.8rem 2rem;
+  background: #ff3c3c;
+  color: white;
+  text-decoration: none;
+  border-radius: 10px;
+  font-size: 1.2rem;
+}
