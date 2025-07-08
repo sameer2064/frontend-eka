@@ -27,6 +27,7 @@
       color: var(--light);
       overflow: hidden;
       height: 100vh;
+      touch-action: manipulation;
     }
 
     #gameContainer {
@@ -124,6 +125,8 @@
       transition: all 0.2s;
       box-shadow: var(--neon-glow);
       backdrop-filter: blur(5px);
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
     }
 
     .control-btn:active {
@@ -340,6 +343,45 @@
       opacity: 0;
       transition: opacity 0.3s;
     }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .control-btn {
+        width: 60px;
+        height: 60px;
+        font-size: 24px;
+      }
+
+      #controls {
+        gap: 15px;
+      }
+
+      .ui-panel {
+        padding: 0.8rem;
+        min-width: 140px;
+      }
+
+      .ui-title {
+        font-size: 0.8rem;
+      }
+
+      .ui-value {
+        font-size: 1.4rem;
+      }
+
+      .game-over-title {
+        font-size: 3rem;
+      }
+
+      .final-score {
+        font-size: 1.5rem;
+      }
+
+      .game-btn {
+        padding: 1rem 1.8rem;
+        font-size: 1rem;
+      }
+    }
   </style>
 </head>
 <body>
@@ -400,15 +442,37 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.2.4/pixi.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
   <script>
+    // ========== GAME CONFIGURATION ==========
+    const config = {
+      car: {
+        width: 70,
+        height: 120,
+        acceleration: 0.05,
+        deceleration: 0.1,
+        nitroBoost: 2,
+        nitroDuration: 2000,
+        maxSpeed: 8,
+        minSpeed: 1,
+        laneBounds: { left: 200, right: 600 }
+      },
+      game: {
+        coinInterval: 800,
+        obstacleInterval: 2000,
+        baseLevelScore: 15,
+        levelDifficultyMultiplier: 1.5,
+        speedIncreasePerLevel: 1,
+        obstacleIntervalReduction: 200,
+        minObstacleInterval: 800
+      },
+      ui: {
+        speedMultiplier: 10 // For display purposes
+      }
+    };
+
     // ========== GAME STATE ==========
     const gameState = {
       score: 0,
       speed: 0,
-      maxSpeed: 8,
-      acceleration: 0.05,
-      deceleration: 0.1,
-      nitroBoost: 2,
-      nitroActive: false,
       carX: 400,
       coins: [],
       obstacles: [],
@@ -416,11 +480,11 @@
       gameActive: false,
       loading: true,
       lastCoinTime: 0,
-      coinInterval: 800,
       lastObstacleTime: 0,
-      obstacleInterval: 2000,
       level: 1,
-      scoreToNextLevel: 15,
+      scoreToNextLevel: config.game.baseLevelScore,
+      nitroActive: false,
+      nitroTimeout: null,
       keys: {
         ArrowLeft: false,
         ArrowRight: false,
@@ -432,22 +496,45 @@
     // ========== PIXI SETUP ==========
     const app = new PIXI.Application({
       view: document.getElementById("gameCanvas"),
-      width: 800,
-      height: 600,
+      width: window.innerWidth,
+      height: window.innerHeight,
       backgroundColor: 0x111111,
-      antialias: true
+      antialias: true,
+      resolution: window.devicePixelRatio || 1,
+      autoDensity: true
     });
 
-    // ========== ASSETS ==========
-    const assets = {
-      roadTexture: "https://images.unsplash.com/photo-1516110833967-0b5716f8c44b?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80",
-      engineSound: "https://assets.codepen.io/21542/engine-sound.mp3",
-      nitroSound: "https://assets.codepen.io/21542/nitro-sound.mp3",
-      crashSound: "https://assets.codepen.io/21542/crash-sound.mp3",
-      coinSound: "https://assets.codepen.io/21542/coin-sound.mp3"
-    };
+    // Handle window resize
+    window.addEventListener('resize', () => {
+      app.renderer.resize(window.innerWidth, window.innerHeight);
+    });
 
-    // ========== CAR DESIGN ==========
+    // ========== GAME OBJECTS ==========
+    // Road with perspective
+    const road = new PIXI.Graphics();
+    road.beginFill(0x333333);
+    road.moveTo(window.innerWidth * 0.2, 0);
+    road.lineTo(window.innerWidth * 0.8, 0);
+    road.lineTo(window.innerWidth * 0.85, window.innerHeight);
+    road.lineTo(window.innerWidth * 0.15, window.innerHeight);
+    road.closePath();
+    road.endFill();
+    app.stage.addChild(road);
+
+    // Road markings
+    const roadMarkings = [];
+    for (let i = 0; i < 20; i++) {
+      const marking = new PIXI.Graphics();
+      marking.beginFill(0xFFFFFF, 0.8);
+      marking.drawRect(-4, -20, 8, 40);
+      marking.endFill();
+      marking.x = window.innerWidth / 2;
+      marking.y = i * 40 - 40;
+      app.stage.addChild(marking);
+      roadMarkings.push(marking);
+    }
+
+    // Car design
     const car = new PIXI.Container();
     
     // Car body
@@ -478,7 +565,7 @@
     carBody.drawRect(20, 50, 15, 10);
     carBody.endFill();
     
-    // Nitro effect placeholder
+    // Nitro effect
     const nitroEffect = new PIXI.Graphics();
     nitroEffect.beginFill(0x00FFFF, 0.7);
     nitroEffect.drawRect(-25, 60, 50, 30);
@@ -506,72 +593,22 @@
     car.addChild(nitroEffect);
     
     car.x = gameState.carX;
-    car.y = 500;
+    car.y = window.innerHeight * 0.8;
     app.stage.addChild(car);
-
-    // ========== ROAD & ENVIRONMENT ==========
-    // Road with perspective
-    const road = new PIXI.Graphics();
-    road.beginFill(0x333333);
-    road.moveTo(150, 0);
-    road.lineTo(650, 0);
-    road.lineTo(700, 600);
-    road.lineTo(100, 600);
-    road.closePath();
-    road.endFill();
-    app.stage.addChild(road);
-
-    // Road markings
-    const roadMarkings = [];
-    for (let i = 0; i < 20; i++) {
-      const marking = new PIXI.Graphics();
-      marking.beginFill(0xFFFFFF, 0.8);
-      marking.drawRect(-4, -20, 8, 40);
-      marking.endFill();
-      marking.x = 400;
-      marking.y = i * 40 - 40;
-      app.stage.addChild(marking);
-      roadMarkings.push(marking);
-    }
-
-    // Side decorations (trees, buildings)
-    const sideDecorations = [];
-    const decorationColors = [0x2a5c2a, 0x555555, 0x3a3a3a, 0x4a2a00];
-    
-    for (let i = 0; i < 15; i++) {
-      // Left side
-      const leftDeco = new PIXI.Graphics();
-      leftDeco.beginFill(decorationColors[Math.floor(Math.random() * decorationColors.length)]);
-      leftDeco.drawRect(0, 0, 40, 80 + Math.random() * 100);
-      leftDeco.endFill();
-      leftDeco.x = 50 + Math.random() * 50;
-      leftDeco.y = i * 100 - 100;
-      app.stage.addChild(leftDeco);
-      sideDecorations.push(leftDeco);
-      
-      // Right side
-      const rightDeco = new PIXI.Graphics();
-      rightDeco.beginFill(decorationColors[Math.floor(Math.random() * decorationColors.length)]);
-      rightDeco.drawRect(0, 0, 40, 80 + Math.random() * 100);
-      rightDeco.endFill();
-      rightDeco.x = 710 + Math.random() * 50;
-      rightDeco.y = i * 100 - 100;
-      app.stage.addChild(rightDeco);
-      sideDecorations.push(rightDeco);
-    }
 
     // ========== SOUNDS ==========
     const sounds = {
-      engine: new Howl({ src: [assets.engineSound], loop: true, volume: 0.3 }),
-      nitro: new Howl({ src: [assets.nitroSound], volume: 0.5 }),
-      crash: new Howl({ src: [assets.crashSound], volume: 0.7 }),
-      coin: new Howl({ src: [assets.coinSound], volume: 0.4 })
+      engine: new Howl({ src: ['https://assets.codepen.io/21542/engine-sound.mp3'], loop: true, volume: 0.3 }),
+      nitro: new Howl({ src: ['https://assets.codepen.io/21542/nitro-sound.mp3'], volume: 0.5 }),
+      crash: new Howl({ src: ['https://assets.codepen.io/21542/crash-sound.mp3'], volume: 0.7 }),
+      coin: new Howl({ src: ['https://assets.codepen.io/21542/coin-sound.mp3'], volume: 0.4 })
     };
 
-    // ========== COIN SYSTEM ==========
+    // ========== GAME SYSTEMS ==========
+    // Coin system
     function createCoin() {
       const now = Date.now();
-      if (now - gameState.lastCoinTime < gameState.coinInterval) return;
+      if (now - gameState.lastCoinTime < config.game.coinInterval) return;
       
       gameState.lastCoinTime = now;
       
@@ -583,7 +620,7 @@
       coin.drawCircle(0, 0, 8);
       coin.endFill();
       
-      coin.x = Math.random() * 400 + 200;
+      coin.x = Math.random() * (window.innerWidth * 0.6) + (window.innerWidth * 0.2);
       coin.y = -50;
       app.stage.addChild(coin);
       
@@ -614,7 +651,7 @@
       });
     }
 
-    // ========== OBSTACLE SYSTEM ==========
+    // Obstacle system
     function createObstacle() {
       const now = Date.now();
       if (now - gameState.lastObstacleTime < gameState.obstacleInterval) return;
@@ -647,7 +684,7 @@
         obstacle.endFill();
       }
       
-      obstacle.x = Math.random() * 400 + 200;
+      obstacle.x = Math.random() * (window.innerWidth * 0.6) + (window.innerWidth * 0.2);
       obstacle.y = -type.height;
       app.stage.addChild(obstacle);
       
@@ -661,13 +698,16 @@
       });
     }
 
-    // ========== LEVEL SYSTEM ==========
+    // Level system
     function checkLevelUp() {
       if (gameState.score >= gameState.scoreToNextLevel) {
         gameState.level++;
-        gameState.scoreToNextLevel = Math.floor(gameState.scoreToNextLevel * 1.5);
-        gameState.maxSpeed += 1;
-        gameState.obstacleInterval = Math.max(800, gameState.obstacleInterval - 200);
+        gameState.scoreToNextLevel = Math.floor(gameState.scoreToNextLevel * config.game.levelDifficultyMultiplier);
+        gameState.maxSpeed += config.game.speedIncreasePerLevel;
+        gameState.obstacleInterval = Math.max(
+          config.game.minObstacleInterval, 
+          gameState.obstacleInterval - config.game.obstacleIntervalReduction
+        );
         
         updateLevelDisplay();
         showLevelUp();
@@ -685,18 +725,18 @@
       }, 2000);
     }
 
-    // ========== COLLISION DETECTION ==========
+    // Collision detection
     function checkCollisions() {
       const carBounds = {
-        left: car.x - 30,
-        right: car.x + 30,
-        top: car.y - 50,
-        bottom: car.y + 50
+        left: car.x - config.car.width/2,
+        right: car.x + config.car.width/2,
+        top: car.y - config.car.height/2,
+        bottom: car.y + config.car.height/2
       };
       
       // Check coins
-      const coinsToCheck = [...gameState.coins];
-      for (const coin of coinsToCheck) {
+      for (let i = gameState.coins.length - 1; i >= 0; i--) {
+        const coin = gameState.coins[i];
         const coinBounds = {
           left: coin.x - 12,
           right: coin.x + 12,
@@ -711,7 +751,7 @@
           
           // Remove coin
           app.stage.removeChild(coin.sprite);
-          gameState.coins = gameState.coins.filter(c => c.id !== coin.id);
+          gameState.coins.splice(i, 1);
           
           // Increase score
           gameState.score += 5;
@@ -727,8 +767,7 @@
       }
       
       // Check obstacles
-      const obstaclesToCheck = [...gameState.obstacles];
-      for (const obstacle of obstaclesToCheck) {
+      for (const obstacle of gameState.obstacles) {
         const obstacleBounds = {
           left: obstacle.x - obstacle.width/2,
           right: obstacle.x + obstacle.width/2,
@@ -746,7 +785,7 @@
       }
     }
 
-    // ========== EFFECTS SYSTEM ==========
+    // Effects system
     function createEffect(x, y, color, size) {
       const effect = new PIXI.Graphics();
       effect.beginFill(color, 0.7);
@@ -764,8 +803,8 @@
     }
 
     function updateEffects() {
-      const effectsToUpdate = [...gameState.effects];
-      for (const effect of effectsToUpdate) {
+      for (let i = gameState.effects.length - 1; i >= 0; i--) {
+        const effect = gameState.effects[i];
         effect.alpha -= 0.02;
         effect.sprite.alpha = effect.alpha;
         effect.sprite.scale.x *= 0.98;
@@ -773,8 +812,67 @@
         
         if (effect.alpha <= 0) {
           app.stage.removeChild(effect.sprite);
-          gameState.effects = gameState.effects.filter(e => e.id !== effect.id);
+          gameState.effects.splice(i, 1);
         }
+      }
+    }
+
+    // ========== GAME CONTROLS ==========
+    function moveLeft() {
+      gameState.carX = Math.max(config.car.laneBounds.left, gameState.carX - 8);
+      car.x = gameState.carX;
+    }
+
+    function moveRight() {
+      gameState.carX = Math.min(config.car.laneBounds.right, gameState.carX + 8);
+      car.x = gameState.carX;
+    }
+
+    function accelerate() {
+      if (gameState.nitroActive) {
+        gameState.speed = Math.min(
+          gameState.maxSpeed * config.car.nitroBoost, 
+          gameState.speed + config.car.acceleration * 2
+        );
+      } else {
+        gameState.speed = Math.min(
+          gameState.maxSpeed, 
+          gameState.speed + config.car.acceleration
+        );
+      }
+    }
+
+    function brake() {
+      gameState.speed = Math.max(
+        config.car.minSpeed, 
+        gameState.speed - config.car.deceleration
+      );
+      deactivateNitro();
+    }
+
+    function activateNitro() {
+      if (gameState.speed > gameState.maxSpeed * 0.7 && !gameState.nitroActive) {
+        gameState.nitroActive = true;
+        sounds.nitro.play();
+        
+        // Clear any existing nitro timeout
+        if (gameState.nitroTimeout) {
+          clearTimeout(gameState.nitroTimeout);
+        }
+        
+        gameState.nitroTimeout = setTimeout(() => {
+          deactivateNitro();
+        }, config.car.nitroDuration);
+      }
+    }
+
+    function deactivateNitro() {
+      gameState.nitroActive = false;
+      nitroEffect.visible = false;
+      
+      if (gameState.nitroTimeout) {
+        clearTimeout(gameState.nitroTimeout);
+        gameState.nitroTimeout = null;
       }
     }
 
@@ -793,23 +891,22 @@
       if (gameState.nitroActive) {
         nitroEffect.clear();
         nitroEffect.beginFill(0x00FFFF, 0.6 - Math.random() * 0.2);
-        nitroEffect.drawRect(-25 - Math.random() * 10, 60, 50 + Math.random() * 20, 30 + Math.random() * 20);
+        nitroEffect.drawRect(
+          -25 - Math.random() * 10, 
+          60, 
+          50 + Math.random() * 20, 
+          30 + Math.random() * 20
+        );
         nitroEffect.endFill();
       }
       
       // Update road markings with perspective
       roadMarkings.forEach(marking => {
         marking.y += gameState.speed;
-        if (marking.y > 600) marking.y = -40;
+        if (marking.y > window.innerHeight) marking.y = -40;
         
-        const scale = 0.6 + (marking.y / 600) * 0.4;
+        const scale = 0.6 + (marking.y / window.innerHeight) * 0.4;
         marking.scale.set(scale);
-      });
-      
-      // Update side decorations
-      sideDecorations.forEach(deco => {
-        deco.y += gameState.speed * 0.7;
-        if (deco.y > 600) deco.y = -150;
       });
       
       // Create new coins and obstacles
@@ -817,29 +914,31 @@
       createObstacle();
       
       // Move coins
-      gameState.coins.forEach(coin => {
+      for (let i = gameState.coins.length - 1; i >= 0; i--) {
+        const coin = gameState.coins[i];
         coin.y += gameState.speed;
         coin.sprite.y = coin.y;
         if (coin.update) coin.update();
         
         // Remove off-screen coins
-        if (coin.y > 650) {
+        if (coin.y > window.innerHeight + 50) {
           app.stage.removeChild(coin.sprite);
-          gameState.coins = gameState.coins.filter(c => c.id !== coin.id);
+          gameState.coins.splice(i, 1);
         }
-      });
+      }
       
       // Move obstacles
-      gameState.obstacles.forEach(obstacle => {
+      for (let i = gameState.obstacles.length - 1; i >= 0; i--) {
+        const obstacle = gameState.obstacles[i];
         obstacle.y += gameState.speed;
         obstacle.sprite.y = obstacle.y;
         
         // Remove off-screen obstacles
-        if (obstacle.y > 650) {
+        if (obstacle.y > window.innerHeight + obstacle.height) {
           app.stage.removeChild(obstacle.sprite);
-          gameState.obstacles = gameState.obstacles.filter(o => o.id !== obstacle.id);
+          gameState.obstacles.splice(i, 1);
         }
-      });
+      }
       
       // Check collisions
       checkCollisions();
@@ -851,7 +950,7 @@
       updateSpeedDisplay();
     }
 
-    // ========== GAME OVER ==========
+    // ========== GAME STATE MANAGEMENT ==========
     function gameOver() {
       gameState.gameActive = false;
       sounds.engine.stop();
@@ -880,16 +979,16 @@
       // Reset game state
       gameState.score = 0;
       gameState.speed = 0;
-      gameState.maxSpeed = 8;
-      gameState.carX = 400;
+      gameState.maxSpeed = config.car.maxSpeed;
+      gameState.carX = window.innerWidth / 2;
       gameState.coins = [];
       gameState.obstacles = [];
       gameState.effects = [];
       gameState.level = 1;
-      gameState.scoreToNextLevel = 15;
-      gameState.obstacleInterval = 2000;
+      gameState.scoreToNextLevel = config.game.baseLevelScore;
+      gameState.obstacleInterval = config.game.obstacleInterval;
       gameState.gameActive = true;
-      gameState.nitroActive = false;
+      deactivateNitro();
       
       // Reset display
       updateScoreDisplay();
@@ -899,47 +998,10 @@
       
       // Reset car position
       car.x = gameState.carX;
-      car.y = 500;
+      car.y = window.innerHeight * 0.8;
       
       // Restart engine sound
       sounds.engine.play();
-    }
-
-    // ========== CONTROLS ==========
-    function moveLeft() {
-      gameState.carX = Math.max(200, gameState.carX - 8);
-      car.x = gameState.carX;
-    }
-
-    function moveRight() {
-      gameState.carX = Math.min(600, gameState.carX + 8);
-      car.x = gameState.carX;
-    }
-
-    function accelerate() {
-      if (gameState.nitroActive) {
-        gameState.speed = Math.min(gameState.maxSpeed * gameState.nitroBoost, 
-          gameState.speed + gameState.acceleration * 2);
-      } else {
-        gameState.speed = Math.min(gameState.maxSpeed, 
-          gameState.speed + gameState.acceleration);
-      }
-    }
-
-    function brake() {
-      gameState.speed = Math.max(1, gameState.speed - gameState.deceleration);
-      gameState.nitroActive = false;
-      nitroEffect.visible = false;
-    }
-
-    function activateNitro() {
-      if (gameState.speed > gameState.maxSpeed * 0.7) {
-        gameState.nitroActive = true;
-        sounds.nitro.play();
-        setTimeout(() => {
-          gameState.nitroActive = false;
-        }, 2000);
-      }
     }
 
     // ========== UI UPDATES ==========
@@ -952,7 +1014,7 @@
     }
 
     function updateSpeedDisplay() {
-      document.getElementById('speedDisplay').textContent = Math.floor(gameState.speed * 10);
+      document.getElementById('speedDisplay').textContent = Math.floor(gameState.speed * config.ui.speedMultiplier);
     }
 
     // ========== EVENT LISTENERS ==========
@@ -975,35 +1037,50 @@
     });
     
     // Touch controls
-    document.getElementById('leftBtn').addEventListener('mousedown', () => gameState.keys.ArrowLeft = true);
-    document.getElementById('leftBtn').addEventListener('touchstart', () => gameState.keys.ArrowLeft = true);
-    document.getElementById('leftBtn').addEventListener('mouseup', () => gameState.keys.ArrowLeft = false);
-    document.getElementById('leftBtn').addEventListener('touchend', () => gameState.keys.ArrowLeft = false);
+    function setupButton(buttonId, key) {
+      const button = document.getElementById(buttonId);
+      
+      const startEvent = (e) => {
+        e.preventDefault();
+        gameState.keys[key] = true;
+      };
+      
+      const endEvent = (e) => {
+        e.preventDefault();
+        gameState.keys[key] = false;
+      };
+      
+      button.addEventListener('mousedown', startEvent);
+      button.addEventListener('touchstart', startEvent);
+      button.addEventListener('mouseup', endEvent);
+      button.addEventListener('touchend', endEvent);
+      button.addEventListener('mouseleave', endEvent);
+    }
     
-    document.getElementById('rightBtn').addEventListener('mousedown', () => gameState.keys.ArrowRight = true);
-    document.getElementById('rightBtn').addEventListener('touchstart', () => gameState.keys.ArrowRight = true);
-    document.getElementById('rightBtn').addEventListener('mouseup', () => gameState.keys.ArrowRight = false);
-    document.getElementById('rightBtn').addEventListener('touchend', () => gameState.keys.ArrowRight = false);
+    setupButton('leftBtn', 'ArrowLeft');
+    setupButton('rightBtn', 'ArrowRight');
+    setupButton('acceleratorBtn', 'ArrowUp');
+    setupButton('brakeBtn', 'ArrowDown');
     
-    document.getElementById('acceleratorBtn').addEventListener('mousedown', () => gameState.keys.ArrowUp = true);
-    document.getElementById('acceleratorBtn').addEventListener('touchstart', () => gameState.keys.ArrowUp = true);
-    document.getElementById('acceleratorBtn').addEventListener('mouseup', () => gameState.keys.ArrowUp = false);
-    document.getElementById('acceleratorBtn').addEventListener('touchend', () => gameState.keys.ArrowUp = false);
+    // Nitro via double-tap on accelerator
+    document.getElementById('acceleratorBtn').addEventListener('dblclick', (e) => {
+      e.preventDefault();
+      activateNitro();
+    });
     
-    document.getElementById('brakeBtn').addEventListener('mousedown', () => gameState.keys.ArrowDown = true);
-    document.getElementById('brakeBtn').addEventListener('touchstart', () => gameState.keys
-    document.getElementById('brakeBtn').addEventListener('mouseup', () => gameState.keys.ArrowDown = false);
-    document.getElementById('brakeBtn').addEventListener('touchend', () => gameState.keys.ArrowDown = false);
-
-    // Nitro via double-tap or double-click on accelerator
-    document.getElementById('acceleratorBtn').addEventListener('dblclick', activateNitro);
+    let lastTap = 0;
     document.getElementById('acceleratorBtn').addEventListener('touchstart', (e) => {
-      if (e.detail === 2) activateNitro();
+      e.preventDefault();
+      const currentTime = new Date().getTime();
+      const tapLength = currentTime - lastTap;
+      if (tapLength < 300 && tapLength > 0) {
+        activateNitro();
+      }
+      lastTap = currentTime;
     });
 
     // Exit button
     document.getElementById('exitBtn').addEventListener('click', () => {
-      // You can customize this to redirect to a home screen
       window.location.href = 'index.html';
     });
 
