@@ -1,351 +1,158 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Eka Racing</title>
+  <title>Eka Racing - Final Fixed Version</title>
   <style>
-    body { 
-      margin: 0; 
-      overflow: hidden; 
-      background: #111; 
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      font-family: 'Arial', sans-serif;
-    }
-    #gameContainer {
-      position: relative;
-      width: 800px;
-      height: 600px;
-    }
-    #gameCanvas { 
-      display: block; 
-      border-radius: 10px;
-      box-shadow: 0 0 20px rgba(0,255,255,0.3);
-    }
-    #loadingScreen {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.8);
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      color: white;
-      z-index: 100;
-    }
-    #loadingMessage {
-      margin-top: 20px;
-      font-size: 1.2em;
-      color: #0ff;
-    }
-    #controls {
-      position: absolute;
-      bottom: 20px;
-      width: 100%;
-      display: flex;
-      justify-content: center;
-      gap: 20px;
-    }
-    .control-btn {
-      width: 60px;
-      height: 60px;
-      background: rgba(255,255,255,0.2);
-      border-radius: 50%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      color: white;
-      font-size: 24px;
-      user-select: none;
-      border: 2px solid #0ff;
-    }
-    #exitBtn {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      background: rgba(255,0,0,0.7);
-      color: white;
-      border: none;
-      padding: 5px 10px;
-      border-radius: 5px;
-      cursor: pointer;
-      z-index: 50;
-    }
+    body { margin: 0; overflow: hidden; background: #111; }
+    #gameCanvas { display: block; margin: 0 auto; }
     #scoreDisplay {
       position: absolute;
       top: 10px;
       left: 10px;
       color: white;
-      font-size: 1.5em;
-      text-shadow: 0 0 5px #0ff;
-      z-index: 50;
+      font-family: Arial;
+      font-size: 24px;
     }
   </style>
 </head>
 <body>
-  <div id="gameContainer">
-    <button id="exitBtn">Exit</button>
-    <div id="scoreDisplay">Score: 0</div>
-    <canvas id="gameCanvas" width="800" height="600"></canvas>
-    
-    <div id="loadingScreen">
-      <div class="loader"></div>
-      <div id="loadingMessage">Loading game assets...</div>
-    </div>
-    
-    <div id="controls">
-      <div class="control-btn" id="brakeBtn">◁</div>
-      <div class="control-btn" id="leftBtn">←</div>
-      <div class="control-btn" id="rightBtn">→</div>
-      <div class="control-btn" id="acceleratorBtn">△</div>
-    </div>
-  </div>
+  <div id="scoreDisplay">Score: 0</div>
+  <canvas id="gameCanvas" width="800" height="600"></canvas>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.2.4/pixi.min.js"></script>
   <script>
-    // ========== GAME STATE ==========
+    // ====== GAME STATE ======
     const gameState = {
       score: 0,
-      speed: 0,
-      maxSpeed: 10,
-      acceleration: 0.05,
-      deceleration: 0.1,
+      speed: 3,
       carX: 400,
-      roadOffset: 0,
       coins: [],
-      obstacles: [],
-      gameStarted: false,
-      loading: true
+      lastCoinTime: 0,
+      gameActive: true
     };
 
-    // ========== DOM ELEMENTS ==========
-    const loadingScreen = document.getElementById('loadingScreen');
-    const loadingMessage = document.getElementById('loadingMessage');
-    const scoreDisplay = document.getElementById('scoreDisplay');
-    const exitBtn = document.getElementById('exitBtn');
-    const leftBtn = document.getElementById('leftBtn');
-    const rightBtn = document.getElementById('rightBtn');
-    const brakeBtn = document.getElementById('brakeBtn');
-    const acceleratorBtn = document.getElementById('acceleratorBtn');
-
-    // ========== PIXI SETUP ==========
+    // ====== PIXI SETUP ======
     const app = new PIXI.Application({
       view: document.getElementById("gameCanvas"),
       width: 800,
       height: 600,
-      backgroundColor: 0x111111,
-      antialias: true
+      backgroundColor: 0x111111
     });
 
-    // ========== GAME ELEMENTS ==========
-    // Road with realistic perspective
-    const road = new PIXI.Graphics();
-    app.stage.addChild(road);
-
-    // Road markings
-    const roadMarkings = [];
-    for (let i = 0; i < 20; i++) {
-      const marking = new PIXI.Graphics();
-      marking.beginFill(0xFFFFFF, 0.8);
-      marking.drawRect(-3, -15, 6, 30);
-      marking.endFill();
-      marking.x = 400;
-      marking.y = i * 30 - 30;
-      app.stage.addChild(marking);
-      roadMarkings.push(marking);
-    }
-
-    // Car (drawn with graphics)
+    // ====== SIMPLE CAR ======
     const car = new PIXI.Graphics();
-    car.beginFill(0xFF3333); // Red body
-    car.drawRoundedRect(-25, -40, 50, 80, 10);
-    car.endFill();
-    
-    // Windows
-    car.beginFill(0x66CCFF, 0.5);
-    car.drawRoundedRect(-20, -30, 40, 30, 5);
-    car.endFill();
-    
-    // Headlights
-    car.beginFill(0xFFFF00);
-    car.drawRect(-25, -40, 10, 5);
-    car.drawRect(15, -40, 10, 5);
-    car.endFill();
-    
-    // Taillights
     car.beginFill(0xFF0000);
-    car.drawRect(-25, 40, 10, 5);
-    car.drawRect(15, 40, 10, 5);
+    car.drawRect(-20, -30, 40, 60);
     car.endFill();
-    
     car.x = gameState.carX;
     car.y = 500;
     app.stage.addChild(car);
 
-    // ========== COIN GENERATION ==========
+    // ====== COIN SYSTEM (FIXED) ======
     function createCoin() {
+      const now = Date.now();
+      if (now - gameState.lastCoinTime < 1000) return;
+      
+      gameState.lastCoinTime = now;
+      
       const coin = new PIXI.Graphics();
-      coin.beginFill(0xFFD700);
+      coin.beginFill(0xFFFF00);
       coin.drawCircle(0, 0, 10);
       coin.endFill();
-      coin.beginFill(0xFFFF00);
-      coin.drawCircle(0, 0, 7);
-      coin.endFill();
-      
       coin.x = Math.random() * 400 + 200;
-      coin.y = -50;
-      coin.collected = false;
+      coin.y = -30;
       app.stage.addChild(coin);
-      gameState.coins.push(coin);
+      
+      // Store with position only (no sprite reference)
+      gameState.coins.push({
+        x: coin.x,
+        y: coin.y,
+        sprite: coin,
+        id: performance.now() + Math.random()
+      });
     }
 
-    // ========== GAME FUNCTIONS ==========
-    function updateRoad() {
-      // Draw road with perspective
-      road.clear();
-      road.beginFill(0x333333);
-      road.moveTo(150, 0);
-      road.lineTo(650, 0);
-      road.lineTo(700, 600);
-      road.lineTo(100, 600);
-      road.closePath();
-      road.endFill();
-    }
-
-    function updateScore() {
-      scoreDisplay.textContent = `Score: ${gameState.score}`;
-    }
-
+    // ====== COLLISION (FIXED) ======
     function checkCollisions() {
-      gameState.coins.forEach((coin, index) => {
-        if (!coin.collected && Math.abs(car.x - coin.x) < 30 && Math.abs(car.y - coin.y) < 50) {
-          coin.collected = true;
-          gameState.score += 1;
-          updateScore();
-          app.stage.removeChild(coin);
-          gameState.coins.splice(index, 1);
+      const carLeft = car.x - 20;
+      const carRight = car.x + 20;
+      const carTop = car.y - 30;
+      const carBottom = car.y + 30;
+      
+      // Work with a copy of coins array
+      const coinsCopy = [...gameState.coins];
+      
+      coinsCopy.forEach(coin => {
+        const coinLeft = coin.x - 10;
+        const coinRight = coin.x + 10;
+        const coinTop = coin.y - 10;
+        const coinBottom = coin.y + 10;
+        
+        if (carRight > coinLeft && 
+            carLeft < coinRight && 
+            carBottom > coinTop && 
+            carTop < coinBottom) {
           
-          // Create coin collection effect
-          const effect = new PIXI.Graphics();
-          effect.beginFill(0xFFFF00);
-          effect.drawCircle(coin.x, coin.y, 5);
-          effect.endFill();
-          app.stage.addChild(effect);
+          // Remove from stage
+          if (coin.sprite && app.stage.children.includes(coin.sprite)) {
+            app.stage.removeChild(coin.sprite);
+          }
           
-          // Animate effect
-          let scale = 1;
-          const grow = app.ticker.add(() => {
-            scale += 0.1;
-            effect.scale.set(scale);
-            effect.alpha -= 0.05;
-            if (effect.alpha <= 0) {
-              app.stage.removeChild(effect);
-              grow.destroy();
-            }
-          });
+          // Update score
+          gameState.score++;
+          document.getElementById('scoreDisplay').textContent = `Score: ${gameState.score}`;
+          
+          // Remove from array (using filter)
+          gameState.coins = gameState.coins.filter(c => c.id !== coin.id);
         }
       });
     }
 
-    function gameLoop(delta) {
-      if (!gameState.gameStarted) return;
+    // ====== GAME LOOP (FIXED) ======
+    function gameLoop() {
+      if (!gameState.gameActive) return;
       
-      // Update car position
-      car.x = gameState.carX;
+      // Create coins
+      createCoin();
       
-      // Update road markings with perspective effect
-      roadMarkings.forEach(marking => {
-        marking.y += gameState.speed;
-        if (marking.y > 600) marking.y = -30;
-        
-        // Perspective effect
-        const scale = 0.5 + (marking.y / 600) * 0.5;
-        marking.scale.set(scale);
-      });
-      
-      // Update coins
-      gameState.coins.forEach(coin => {
+      // Move coins and remove off-screen ones
+      gameState.coins = gameState.coins.filter(coin => {
         coin.y += gameState.speed;
-        if (coin.y > 650) {
-          app.stage.removeChild(coin);
-          gameState.coins = gameState.coins.filter(c => c !== coin);
+        if (coin.sprite) coin.sprite.y = coin.y;
+        
+        // Remove if off screen
+        if (coin.y > 630) {
+          if (coin.sprite && app.stage.children.includes(coin.sprite)) {
+            app.stage.removeChild(coin.sprite);
+          }
+          return false;
         }
+        return true;
       });
-      
-      // Generate new coins
-      if (Math.random() < 0.02 && gameState.gameStarted) {
-        createCoin();
-      }
       
       // Check collisions
       checkCollisions();
     }
 
-    // ========== CONTROL FUNCTIONS ==========
-    function handleKeyDown(e) {
-      if (e.key === "ArrowLeft") moveLeft();
-      if (e.key === "ArrowRight") moveRight();
-      if (e.key === "ArrowUp") accelerate();
-      if (e.key === "ArrowDown") brake();
+    // ====== CONTROLS (ALWAYS WORKING) ======
+    function moveLeft() { 
+      gameState.carX = Math.max(200, gameState.carX - 10);
+      car.x = gameState.carX;
+    }
+    
+    function moveRight() { 
+      gameState.carX = Math.min(600, gameState.carX + 10);
+      car.x = gameState.carX;
     }
 
-    function moveLeft() {
-      gameState.carX = Math.max(250, gameState.carX - 10);
-    }
-
-    function moveRight() {
-      gameState.carX = Math.min(550, gameState.carX + 10);
-    }
-
-    function accelerate() {
-      gameState.speed = Math.min(gameState.maxSpeed, gameState.speed + gameState.acceleration);
-    }
-
-    function brake() {
-      gameState.speed = Math.max(0, gameState.speed - gameState.deceleration);
-    }
-
-    // ========== EVENT LISTENERS ==========
-    window.addEventListener('keydown', handleKeyDown);
-    
-    leftBtn.addEventListener('mousedown', moveLeft);
-    leftBtn.addEventListener('touchstart', moveLeft);
-    
-    rightBtn.addEventListener('mousedown', moveRight);
-    rightBtn.addEventListener('touchstart', moveRight);
-    
-    acceleratorBtn.addEventListener('mousedown', accelerate);
-    acceleratorBtn.addEventListener('touchstart', accelerate);
-    
-    brakeBtn.addEventListener('mousedown', brake);
-    brakeBtn.addEventListener('touchstart', brake);
-    
-    exitBtn.addEventListener('click', () => {
-      window.location.href = 'index.html';
+    // ====== KEYBOARD CONTROLS ======
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft') moveLeft();
+      if (e.key === 'ArrowRight') moveRight();
     });
 
-    // ========== INITIALIZE GAME ==========
-    function initGame() {
-      updateRoad();
-      app.ticker.add(gameLoop);
-      
-      // Simulate loading
-      setTimeout(() => {
-        loadingMessage.textContent = "Loading complete!";
-        setTimeout(() => {
-          loadingScreen.style.display = "none";
-          gameState.gameStarted = true;
-          loadingMessage.textContent = "Loading game assets...";
-        }, 500);
-      }, 2000);
-    }
-
-    // Start the game
-    initGame();
+    // ====== START GAME ======
+    app.ticker.add(gameLoop);
   </script>
 </body>
 </html>
