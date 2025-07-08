@@ -1,30 +1,323 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Eka Racing</title>
-  <link rel="stylesheet" href="style.css" />
-  <link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Press+Start+2P&display=swap" rel="stylesheet">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eka Racing | Ultimate Street Racing</title>
+  <link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Orbitron:wght@400;700&family=Montserrat:wght@300;400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #FF3C3C;
+      --secondary: #00FFFF;
+      --accent: #FFCC00;
+      --dark: #0A0A0A;
+      --light: #FFFFFF;
+      --neon-glow: 0 0 10px var(--secondary), 0 0 20px var(--secondary), 0 0 30px var(--secondary);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Montserrat', sans-serif;
+      background: url('https://images.unsplash.com/photo-1516110833967-0b5716f8c44b?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80') no-repeat center center/cover;
+      height: 100vh;
+      overflow: hidden;
+      color: var(--light);
+      perspective: 1000px;
+    }
+
+    .overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      z-index: 1;
+    }
+
+    .container {
+      position: relative;
+      z-index: 2;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 2rem;
+      transform-style: preserve-3d;
+    }
+
+    .logo {
+      font-family: 'Russo One', sans-serif;
+      font-size: 6rem;
+      color: var(--primary);
+      text-shadow: var(--neon-glow);
+      margin-bottom: 1rem;
+      letter-spacing: 5px;
+      text-transform: uppercase;
+      position: relative;
+      animation: pulse 2s infinite alternate;
+    }
+
+    .tagline {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.5rem;
+      color: var(--secondary);
+      text-shadow: 0 0 5px var(--secondary);
+      margin-bottom: 3rem;
+      letter-spacing: 3px;
+    }
+
+    .btn-container {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      margin-top: 3rem;
+      perspective: 1000px;
+    }
+
+    .btn {
+      position: relative;
+      padding: 1.2rem 3rem;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.2rem;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--light);
+      background: transparent;
+      border: 2px solid var(--secondary);
+      border-radius: 50px;
+      cursor: pointer;
+      overflow: hidden;
+      transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+      transform-style: preserve-3d;
+      box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+    }
+
+    .btn-primary {
+      background: linear-gradient(45deg, var(--primary), #FF6B6B);
+      border: none;
+      box-shadow: 0 0 20px rgba(255, 60, 60, 0.6);
+    }
+
+    .btn:hover {
+      transform: translateY(-5px) scale(1.05);
+      box-shadow: 0 0 30px var(--secondary);
+    }
+
+    .btn-primary:hover {
+      box-shadow: 0 0 30px var(--primary);
+    }
+
+    .btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.2), transparent);
+      transition: 0.5s;
+    }
+
+    .btn:hover::before {
+      left: 100%;
+    }
+
+    .features {
+      display: flex;
+      justify-content: center;
+      gap: 2rem;
+      margin-top: 3rem;
+      flex-wrap: wrap;
+    }
+
+    .feature {
+      background: rgba(0, 255, 255, 0.1);
+      padding: 1rem 1.5rem;
+      border-radius: 10px;
+      border: 1px solid var(--secondary);
+      backdrop-filter: blur(5px);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.3s;
+    }
+
+    .feature:hover {
+      transform: translateY(-5px);
+      background: rgba(0, 255, 255, 0.2);
+      box-shadow: 0 0 15px var(--secondary);
+    }
+
+    .feature i {
+      color: var(--accent);
+      font-size: 1.2rem;
+    }
+
+    .particles {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+    }
+
+    .leaderboard {
+      position: absolute;
+      right: 2rem;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(10, 10, 10, 0.7);
+      border: 1px solid var(--secondary);
+      border-radius: 10px;
+      padding: 1.5rem;
+      width: 250px;
+      backdrop-filter: blur(5px);
+      box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
+    }
+
+    .leaderboard h3 {
+      font-family: 'Orbitron', sans-serif;
+      color: var(--accent);
+      margin-bottom: 1rem;
+      text-align: center;
+      border-bottom: 1px solid var(--secondary);
+      padding-bottom: 0.5rem;
+    }
+
+    .leaderboard-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.5rem 0;
+      border-bottom: 1px dashed rgba(0, 255, 255, 0.2);
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); text-shadow: var(--neon-glow); }
+      100% { transform: scale(1.05); text-shadow: 0 0 15px var(--secondary), 0 0 30px var(--secondary), 0 0 45px var(--secondary); }
+    }
+
+    @keyframes float {
+      0% { transform: translateY(0px); }
+      50% { transform: translateY(-20px); }
+      100% { transform: translateY(0px); }
+    }
+
+    .floating-car {
+      position: absolute;
+      width: 300px;
+      height: 300px;
+      left: 10%;
+      bottom: 10%;
+      animation: float 6s ease-in-out infinite;
+      filter: drop-shadow(0 0 20px var(--primary));
+      opacity: 0.8;
+      z-index: 1;
+    }
+
+    /* Responsive design */
+    @media (max-width: 768px) {
+      .logo {
+        font-size: 3rem;
+      }
+      .tagline {
+        font-size: 1rem;
+      }
+      .leaderboard {
+        position: static;
+        transform: none;
+        width: 100%;
+        margin-top: 2rem;
+      }
+      .floating-car {
+        display: none;
+      }
+    }
+  </style>
 </head>
 <body>
-  <div class="hero">
-    <h1>🔥 EKA RACING 🔥</h1>
-    <p class="subtitle">THE ULTIMATE STREET RACING EXPERIENCE</p>
-    <div class="leaderboard-preview">
-      <h3>TOP RACERS</h3>
-      <div id="top-scores"></div>
+  <div class="overlay"></div>
+  
+  <div class="container">
+    <h1 class="logo">EKA RACING</h1>
+    <p class="tagline">THE ULTIMATE STREET RACING EXPERIENCE</p>
+    
+    <div class="btn-container">
+      <button class="btn btn-primary" onclick="window.location.href='game.html'">
+        <i class="fas fa-play"></i> START RACING
+      </button>
+      <button class="btn">
+        <i class="fas fa-trophy"></i> LEADERBOARDS
+      </button>
     </div>
-    <a href="game.html" class="start-btn">START RACING 🚗💨</a>
+    
     <div class="features">
-      <div class="feature">⚡ NITRO BOOSTS</div>
-      <div class="feature">🏁 INFINITE TRACK</div>
-      <div class="feature">🏆 GLOBAL LEADERBOARD</div>
+      <div class="feature">
+        <i class="fas fa-tachometer-alt"></i> <span>NITRO BOOST</span>
+      </div>
+      <div class="feature">
+        <i class="fas fa-infinity"></i> <span>INFINITE TRACK</span>
+      </div>
+      <div class="feature">
+        <i class="fas fa-level-up-alt"></i> <span>MULTIPLE LEVELS</span>
+      </div>
     </div>
+    
+    <div class="leaderboard">
+      <h3>TOP RACERS</h3>
+      <div class="leaderboard-item">
+        <span>SPEEDSTER</span> <span>12,450</span>
+      </div>
+      <div class="leaderboard-item">
+        <span>NITRO_KING</span> <span>10,780</span>
+      </div>
+      <div class="leaderboard-item">
+        <span>DRIFT_QUEEN</span> <span>9,650</span>
+      </div>
+      <div class="leaderboard-item">
+        <span>ROAD_WARRIOR</span> <span>8,920</span>
+      </div>
+      <div class="leaderboard-item">
+        <span>TURBO_CHARGED</span> <span>7,340</span>
+      </div>
+    </div>
+    
+    <img src="https://cdn.pixabay.com/photo/2012/04/25/00/19/race-car-41071_1280.png" alt="Race Car" class="floating-car">
   </div>
-  <audio id="bgMusic" loop>
-    <source src="https://assets.codepen.io/21542/hyperspeed-game-bg-music.mp3" type="audio/mpeg">
-  </audio>
-  <script src="landing.js"></script>
+
+  <!-- Font Awesome for icons -->
+  <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+  
+  <!-- Particle.js for background effects -->
+  <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+  <script>
+    // Initialize particle.js
+    particlesJS("particles-js", {
+      "particles": {
+        "number": { "value": 80, "density": { "enable": true, "value_area": 800 } },
+        "color": { "value": "#00ffff" },
+        "shape": { "type": "circle" },
+        "opacity": { "value": 0.5, "random": true },
+        "size": { "value": 3, "random": true },
+        "line_linked": { "enable": true, "distance": 150, "color": "#00ffff", "opacity": 0.2, "width": 1 },
+        "move": { "enable": true, "speed": 2, "direction": "none", "random": true, "straight": false, "out_mode": "out" }
+      },
+      "interactivity": {
+        "detect_on": "canvas",
+        "events": {
+          "onhover": { "enable": true, "mode": "repulse" },
+          "onclick": { "enable": true, "mode": "push" }
+        }
+      }
+    });
+  </script>
 </body>
 </html>
