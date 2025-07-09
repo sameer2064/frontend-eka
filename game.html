@@ -1,95 +1,644 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Eka Racing - Final Working</title>
-  <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
-      height: 100%;
-      background: #000;
-      font-family: sans-serif;
-    }
-    #gameCanvas {
-      display: block;
-    }
-    #ui {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      color: white;
-      font-size: 18px;
-      z-index: 10;
-    }
-    .btn {
-      padding: 10px 15px;
-      margin: 5px;
-      border: none;
-      background: #ff4444;
-      color: white;
-      cursor: pointer;
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Eka Racing - Realistic Two-Lane Racing</title>
+<style>
+  html, body {
+    margin: 0; padding: 0; overflow: hidden; background: #111;
+    font-family: 'Orbitron', sans-serif;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #gameContainer {
+    position: relative;
+    width: 100vw; height: 100vh;
+  }
+  canvas {
+    display: block;
+  }
+  /* UI Panels */
+  #ui {
+    position: absolute;
+    top: 12px; left: 12px;
+    color: #0ff;
+    text-shadow: 0 0 6px #0ff;
+    font-weight: 700;
+    z-index: 10;
+    user-select: none;
+  }
+  #ui > div {
+    margin-bottom: 8px;
+    font-size: 18px;
+  }
+  #gameOverScreen {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.85);
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: #f33;
+    font-size: 48px;
+    font-weight: 900;
+    text-shadow: 0 0 12px #f33;
+    z-index: 50;
+  }
+  #gameOverScreen button {
+    margin-top: 24px;
+    font-size: 24px;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    background: linear-gradient(45deg,#f33,#a00);
+    color: white;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    box-shadow: 0 0 12px #f33;
+  }
+  #controls {
+    position: absolute;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 20px;
+    z-index: 20;
+  }
+  .btn {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: rgba(0,255,255,0.2);
+    border: 2px solid #0ff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 36px;
+    color: #0ff;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.3s;
+  }
+  .btn:active {
+    background: rgba(0,255,255,0.5);
+  }
+  /* Simple icons from Unicode */
+</style>
 </head>
 <body>
+  <div id="gameContainer"></div>
+
   <div id="ui">
     <div>Score: <span id="score">0</span></div>
-    <div>Speed: <span id="speed">0</span></div>
     <div>Level: <span id="level">1</span></div>
-    <button class="btn" id="restartBtn">Restart</button>
+    <div>Speed: <span id="speed">0</span> km/h</div>
   </div>
-  <canvas id="gameCanvas"></canvas>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.2.4/pixi.min.js"></script>
-  <script>
-    const app = new PIXI.Application({ view: document.getElementById("gameCanvas"), resizeTo: window });
+  <div id="gameOverScreen" role="alert" aria-live="assertive">
+    GAME OVER
+    <button id="restartBtn">Restart</button>
+  </div>
 
-    // Draw red car
-    const car = new PIXI.Graphics();
-    car.beginFill(0xff0000);
-    car.drawRect(-25, -40, 50, 80);
-    car.endFill();
-    car.x = window.innerWidth / 2;
-    car.y = window.innerHeight - 100;
+  <div id="controls">
+    <div class="btn" id="leftBtn">&#8592;</div>
+    <div class="btn" id="rightBtn">&#8594;</div>
+    <div class="btn" id="accelBtn">&#9650;</div>
+    <div class="btn" id="brakeBtn">&#9660;</div>
+  </div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.2.4/pixi.min.js"></script>
+<script>
+(() => {
+  // === Constants & Config ===
+  const LANE_WIDTH = 180;
+  const LANES = 2;
+  const ROAD_WIDTH = LANE_WIDTH * LANES;
+  const ROAD_LEFT = window.innerWidth/2 - ROAD_WIDTH/2;
+  const ROAD_RIGHT = ROAD_LEFT + ROAD_WIDTH;
+  const CAR_WIDTH = 80;
+  const CAR_HEIGHT = 140;
+  const MAX_SPEED = 12;
+  const ACCELERATION = 0.2;
+  const DECELERATION = 0.3;
+  const NITRO_MULTIPLIER = 1.8;
+  const NITRO_DURATION = 3000;
+  const OBSTACLE_INTERVAL_START = 1800;
+  const COIN_INTERVAL_START = 900;
+  const OBSTACLE_SPEED_INCREASE = 0.6;
+  const LEVEL_UP_SCORE = 30;
+
+  // === State ===
+  let score = 0;
+  let level = 1;
+  let speed = 0;
+  let maxSpeed = MAX_SPEED;
+  let nitroActive = false;
+  let nitroTimeout = null;
+  let gameOver = false;
+
+  // Keyboard keys state
+  const keys = {
+    left: false,
+    right: false,
+    accel: false,
+    brake: false
+  };
+
+  // === PIXI Setup ===
+  const app = new PIXI.Application({
+    width: window.innerWidth,
+    height: window.innerHeight,
+    backgroundColor: 0x111111,
+    resolution: window.devicePixelRatio || 1,
+    autoDensity: true,
+    antialias: true,
+  });
+
+  document.getElementById('gameContainer').appendChild(app.view);
+
+  // === Road ===
+  const road = new PIXI.Container();
+  app.stage.addChild(road);
+
+  // Road background (dark asphalt)
+  const roadBg = new PIXI.Graphics();
+  roadBg.beginFill(0x222222);
+  roadBg.drawRect(ROAD_LEFT, 0, ROAD_WIDTH, app.renderer.height);
+  roadBg.endFill();
+  road.addChild(roadBg);
+
+  // Road stripes in the middle of lanes
+  const laneDividerHeight = 60;
+  const laneDividerGap = 40;
+  const laneDividers = [];
+  const dividerX = window.innerWidth/2;
+  for (let i = 0; i < 30; i++) {
+    const d = new PIXI.Graphics();
+    d.beginFill(0xffffff, 0.7);
+    d.drawRect(-8, 0, 16, laneDividerHeight);
+    d.endFill();
+    d.x = dividerX;
+    d.y = i * (laneDividerHeight + laneDividerGap);
+    road.addChild(d);
+    laneDividers.push(d);
+  }
+
+  // === Roadside greenery (trees) ===
+  const greenery = new PIXI.Container();
+  app.stage.addChild(greenery);
+  function createTree(x, y) {
+    const tree = new PIXI.Container();
+    // trunk
+    const trunk = new PIXI.Graphics();
+    trunk.beginFill(0x654321);
+    trunk.drawRect(-6, 0, 12, 40);
+    trunk.endFill();
+    tree.addChild(trunk);
+    // leaves (3 circles)
+    const leafColors = [0x117733, 0x228844, 0x339955];
+    for(let i=0; i<3; i++) {
+      const leaf = new PIXI.Graphics();
+      leaf.beginFill(leafColors[i]);
+      leaf.drawCircle(0, -15 - i*15, 20 - i*5);
+      leaf.endFill();
+      tree.addChild(leaf);
+    }
+    tree.x = x;
+    tree.y = y;
+    return tree;
+  }
+
+  const trees = [];
+  const treeSpacing = 300;
+  for(let i=0; i<20; i++) {
+    // left side trees
+    const treeLeft = createTree(ROAD_LEFT - 80, i * treeSpacing);
+    greenery.addChild(treeLeft);
+    trees.push(treeLeft);
+    // right side trees
+    const treeRight = createTree(ROAD_RIGHT + 80, i * treeSpacing + 100);
+    greenery.addChild(treeRight);
+    trees.push(treeRight);
+  }
+
+  // === Player car ===
+  const playerCar = new PIXI.Container();
+
+  // car base shape - body
+  const carBody = new PIXI.Graphics();
+  carBody.beginFill(0x0044cc);
+  carBody.drawRoundedRect(-CAR_WIDTH/2, -CAR_HEIGHT/2, CAR_WIDTH, CAR_HEIGHT, 20);
+  carBody.endFill();
+  playerCar.addChild(carBody);
+
+  // windows
+  const windows = new PIXI.Graphics();
+  windows.beginFill(0x99ccff, 0.6);
+  windows.drawRoundedRect(-CAR_WIDTH/2 + 15, -CAR_HEIGHT/2 + 30, CAR_WIDTH - 30, 40, 12);
+  windows.endFill();
+  playerCar.addChild(windows);
+
+  // headlights
+  const headlights = new PIXI.Graphics();
+  headlights.beginFill(0xffffcc);
+  headlights.drawEllipse(-CAR_WIDTH/2 + 12, CAR_HEIGHT/2 - 20, 10, 6);
+  headlights.drawEllipse(CAR_WIDTH/2 - 12, CAR_HEIGHT/2 - 20, 10, 6);
+  headlights.endFill();
+  playerCar.addChild(headlights);
+
+  playerCar.x = dividerX;
+  playerCar.y = app.renderer.height - CAR_HEIGHT - 20;
+  app.stage.addChild(playerCar);
+
+  // Player lane (0 or 1)
+  let playerLane = 0;
+
+  // === Opponent Cars ===
+  const opponentCars = [];
+  const opponentColors = [0xcc0000, 0x00cc00, 0xccaa00];
+  const opponentCarWidth = 80;
+  const opponentCarHeight = 140;
+
+  function createOpponentCar(lane) {
+    const car = new PIXI.Container();
+
+    // body
+    const body = new PIXI.Graphics();
+    body.beginFill(opponentColors[Math.floor(Math.random()*opponentColors.length)]);
+    body.drawRoundedRect(-opponentCarWidth/2, -opponentCarHeight/2, opponentCarWidth, opponentCarHeight, 20);
+    body.endFill();
+    car.addChild(body);
+
+    // windows
+    const win = new PIXI.Graphics();
+    win.beginFill(0x99ccff, 0.5);
+    win.drawRoundedRect(-opponentCarWidth/2 + 15, -opponentCarHeight/2 + 30, opponentCarWidth - 30, 40, 12);
+    win.endFill();
+    car.addChild(win);
+
+    // headlights (red tint for tail lights)
+    const tailLights = new PIXI.Graphics();
+    tailLights.beginFill(0xff3333);
+    tailLights.drawEllipse(-opponentCarWidth/2 + 12, opponentCarHeight/2 - 20, 12, 8);
+    tailLights.drawEllipse(opponentCarWidth/2 - 12, opponentCarHeight/2 - 20, 12, 8);
+    tailLights.endFill();
+    car.addChild(tailLights);
+
+    car.x = ROAD_LEFT + LANE_WIDTH/2 + lane * LANE_WIDTH;
+    car.y = -opponentCarHeight;
+    car.speed = speed * (0.7 + Math.random() * 0.6);
+
     app.stage.addChild(car);
+    opponentCars.push(car);
+  }
 
-    // Game state
-    let speed = 0, score = 0, level = 1;
-    const keys = {};
+  // === Coins ===
+  const coins = [];
+  const coinRadius = 15;
 
-    window.addEventListener("keydown", e => keys[e.key] = true);
-    window.addEventListener("keyup", e => keys[e.key] = false);
+  function createCoin() {
+    const coin = new PIXI.Graphics();
+    coin.beginFill(0xffd700);
+    coin.drawCircle(0, 0, coinRadius);
+    coin.endFill();
 
-    function updateUI() {
-      document.getElementById("score").textContent = Math.floor(score);
-      document.getElementById("speed").textContent = Math.floor(speed);
-      document.getElementById("level").textContent = level;
+    coin.x = ROAD_LEFT + LANE_WIDTH/2 + Math.floor(Math.random()*LANES) * LANE_WIDTH;
+    coin.y = -coinRadius * 2;
+
+    app.stage.addChild(coin);
+    coins.push(coin);
+  }
+
+  // === Obstacles (barrels) ===
+  const obstacles = [];
+  const obstacleRadius = 25;
+
+  function createObstacle() {
+    const barrel = new PIXI.Graphics();
+    barrel.beginFill(0x774400);
+    barrel.drawEllipse(0, 0, obstacleRadius, obstacleRadius * 1.2);
+    barrel.endFill();
+
+    barrel.x = ROAD_LEFT + LANE_WIDTH/2 + Math.floor(Math.random()*LANES) * LANE_WIDTH;
+    barrel.y = -obstacleRadius * 3;
+
+    app.stage.addChild(barrel);
+    obstacles.push(barrel);
+  }
+
+  // === Nitro effect ===
+  const nitroEffect = new PIXI.Graphics();
+  app.stage.addChild(nitroEffect);
+  nitroEffect.visible = false;
+
+  // === UI Elements ===
+  const scoreEl = document.getElementById('score');
+  const levelEl = document.getElementById('level');
+  const speedEl = document.getElementById('speed');
+  const gameOverScreen = document.getElementById('gameOverScreen');
+  const restartBtn = document.getElementById('restartBtn');
+
+  restartBtn.addEventListener('click', () => {
+    resetGame();
+  });
+
+  // === Game loop timers ===
+  let lastObstacleSpawn = 0;
+  let lastCoinSpawn = 0;
+  let obstacleInterval = OBSTACLE_INTERVAL_START;
+  let coinInterval = COIN_INTERVAL_START;
+
+  // === Movement functions ===
+  function movePlayerLeft() {
+    if (playerLane > 0) {
+      playerLane--;
+      playerCar.x = ROAD_LEFT + LANE_WIDTH/2 + playerLane * LANE_WIDTH;
+    }
+  }
+  function movePlayerRight() {
+    if (playerLane < LANES - 1) {
+      playerLane++;
+      playerCar.x = ROAD_LEFT + LANE_WIDTH/2 + playerLane * LANE_WIDTH;
+    }
+  }
+
+  // === Nitro activation ===
+  function activateNitro() {
+    if (speed > maxSpeed * 0.6 && !nitroActive) {
+      nitroActive = true;
+      nitroEffect.visible = true;
+      nitroEffect.clear();
+      nitroEffect.beginFill(0x00ffff, 0.6);
+      nitroEffect.drawRect(playerCar.x - 25, playerCar.y + CAR_HEIGHT/2 - 10, 50, 30);
+      nitroEffect.endFill();
+
+      clearTimeout(nitroTimeout);
+      nitroTimeout = setTimeout(() => {
+        deactivateNitro();
+      }, NITRO_DURATION);
+    }
+  }
+  function deactivateNitro() {
+    nitroActive = false;
+    nitroEffect.visible = false;
+  }
+
+  // === Collision detection helpers ===
+  function rectsIntersect(a, b) {
+    return !(
+      a.x + a.width < b.x ||
+      a.x > b.x + b.width ||
+      a.y + a.height < b.y ||
+      a.y > b.y + b.height
+    );
+  }
+
+  // === Collision checks ===
+  function checkCollisions() {
+    // Player bounding box
+    const playerRect = {
+      x: playerCar.x - CAR_WIDTH/2,
+      y: playerCar.y - CAR_HEIGHT/2,
+      width: CAR_WIDTH,
+      height: CAR_HEIGHT,
+    };
+
+    // Check coins
+    for(let i = coins.length-1; i >= 0; i--) {
+      const coin = coins[i];
+      const coinRect = {
+        x: coin.x - coinRadius,
+        y: coin.y - coinRadius,
+        width: coinRadius * 2,
+        height: coinRadius * 2,
+      };
+      if(rectsIntersect(playerRect, coinRect)) {
+        // Collect coin
+        app.stage.removeChild(coin);
+        coins.splice(i,1);
+        score += 10;
+        updateUI();
+      }
     }
 
-    function resetGame() {
-      car.x = window.innerWidth / 2;
-      speed = 0;
-      score = 0;
-      level = 1;
-      updateUI();
+    // Check obstacles
+    for(let i = obstacles.length-1; i >= 0; i--) {
+      const obs = obstacles[i];
+      const obsRect = {
+        x: obs.x - obstacleRadius,
+        y: obs.y - obstacleRadius * 1.2,
+        width: obstacleRadius*2,
+        height: obstacleRadius*2.4,
+      };
+      if(rectsIntersect(playerRect, obsRect)) {
+        endGame();
+        return;
+      }
     }
 
-    document.getElementById("restartBtn").onclick = resetGame;
+    // Check opponent cars
+    for(let i = opponentCars.length-1; i >= 0; i--) {
+      const op = opponentCars[i];
+      const opRect = {
+        x: op.x - opponentCarWidth/2,
+        y: op.y - opponentCarHeight/2,
+        width: opponentCarWidth,
+        height: opponentCarHeight,
+      };
+      if(rectsIntersect(playerRect, opRect)) {
+        endGame();
+        return;
+      }
+    }
+  }
 
-    app.ticker.add(() => {
-      if (keys["ArrowLeft"]) car.x -= 5;
-      if (keys["ArrowRight"]) car.x += 5;
-      if (keys["ArrowUp"]) speed = Math.min(speed + 0.1, 10);
-      if (keys["ArrowDown"]) speed = Math.max(speed - 0.2, 0);
+  // === Update UI ===
+  function updateUI() {
+    scoreEl.textContent = score;
+    levelEl.textContent = level;
+    speedEl.textContent = Math.round(speed * 20 * (nitroActive ? NITRO_MULTIPLIER : 1));
+  }
 
-      score += speed / 10;
-      if (score > level * 100) level++;
+  // === Game Over ===
+  function endGame() {
+    gameOver = true;
+    gameOverScreen.style.display = "flex";
+  }
 
-      updateUI();
+  // === Reset Game ===
+  function resetGame() {
+    // Clear all entities
+    opponentCars.forEach(c => app.stage.removeChild(c));
+    opponentCars.length = 0;
+    coins.forEach(c => app.stage.removeChild(c));
+    coins.length = 0;
+    obstacles.forEach(o => app.stage.removeChild(o));
+    obstacles.length = 0;
+    nitroActive = false;
+    nitroEffect.visible = false;
+    score = 0;
+    level = 1;
+    speed = 0;
+    maxSpeed = MAX_SPEED;
+    playerLane = 0;
+    playerCar.x = ROAD_LEFT + LANE_WIDTH/2 + playerLane * LANE_WIDTH;
+    gameOverScreen.style.display = "none";
+    lastObstacleSpawn = 0;
+    lastCoinSpawn = 0;
+    obstacleInterval = OBSTACLE_INTERVAL_START;
+    coinInterval = COIN_INTERVAL_START;
+    gameOver = false;
+    updateUI();
+  }
+
+  // === Game Loop ===
+  app.ticker.add((delta) => {
+    if(gameOver) return;
+
+    // Handle controls acceleration
+    if(keys.accel) {
+      speed += ACCELERATION * delta;
+    } else if(keys.brake) {
+      speed -= DECELERATION * delta * 2;
+    } else {
+      speed -= DECELERATION * delta;
+    }
+    speed = Math.min(speed, maxSpeed * (nitroActive ? NITRO_MULTIPLIER : 1));
+    speed = Math.max(speed, 0);
+
+    // Move road stripes down
+    laneDividers.forEach(d => {
+      d.y += speed * delta * 8;
+      if(d.y > app.renderer.height) d.y -= (laneDividerHeight + laneDividerGap) * laneDividers.length;
     });
-  </script>
+
+    // Move trees down for greenery effect
+    trees.forEach(t => {
+      t.y += speed * delta * 4;
+      if(t.y > app.renderer.height + 100) {
+        t.y -= treeSpacing * trees.length / 2;
+      }
+    });
+
+    // Spawn obstacles
+    lastObstacleSpawn += delta * 16;
+    if(lastObstacleSpawn > obstacleInterval) {
+      createObstacle();
+      lastObstacleSpawn = 0;
+    }
+
+    // Spawn coins
+    lastCoinSpawn += delta * 16;
+    if(lastCoinSpawn > coinInterval) {
+      createCoin();
+      lastCoinSpawn = 0;
+    }
+
+    // Move obstacles down
+    for(let i = obstacles.length - 1; i >= 0; i--) {
+      let obs = obstacles[i];
+      obs.y += speed * delta * 8;
+      if(obs.y > app.renderer.height + 100) {
+        app.stage.removeChild(obs);
+        obstacles.splice(i,1);
+      }
+    }
+
+    // Move coins down
+    for(let i = coins.length - 1; i >= 0; i--) {
+      let c = coins[i];
+      c.y += speed * delta * 8;
+      if(c.y > app.renderer.height + 50) {
+        app.stage.removeChild(c);
+        coins.splice(i,1);
+      }
+    }
+
+    // Spawn opponent cars occasionally
+    if(Math.random() < 0.02 * delta && opponentCars.length < 5) {
+      createOpponentCar(Math.floor(Math.random()*LANES));
+    }
+
+    // Move opponent cars
+    for(let i = opponentCars.length -1; i >= 0; i--) {
+      let op = opponentCars[i];
+      op.y += speed * delta * 8 * 1.1;
+      if(op.y > app.renderer.height + 150) {
+        app.stage.removeChild(op);
+        opponentCars.splice(i,1);
+      }
+    }
+
+    // Player lane smooth movement
+    const targetX = ROAD_LEFT + LANE_WIDTH/2 + playerLane * LANE_WIDTH;
+    playerCar.x += (targetX - playerCar.x) * 0.3;
+
+    // Collision detection
+    checkCollisions();
+
+    // Score increment based on speed
+    score += speed * delta * 0.07;
+    updateUI();
+
+    // Level up every LEVEL_UP_SCORE points
+    if(score > level * LEVEL_UP_SCORE) {
+      level++;
+      maxSpeed += OBSTACLE_SPEED_INCREASE;
+      obstacleInterval = Math.max(700, obstacleInterval - 200);
+      coinInterval = Math.max(400, coinInterval - 100);
+    }
+  });
+
+  // === Input Handling ===
+  window.addEventListener('keydown', e => {
+    if(gameOver) return;
+    if(e.key === 'ArrowLeft') keys.left = true;
+    if(e.key === 'ArrowRight') keys.right = true;
+    if(e.key === 'ArrowUp') keys.accel = true;
+    if(e.key === 'ArrowDown') keys.brake = true;
+
+    // Move player lanes immediately
+    if(e.key === 'ArrowLeft') movePlayerLeft();
+    if(e.key === 'ArrowRight') movePlayerRight();
+
+    // Nitro toggle (Shift)
+    if(e.key === 'Shift') activateNitro();
+  });
+  window.addEventListener('keyup', e => {
+    if(e.key === 'ArrowLeft') keys.left = false;
+    if(e.key === 'ArrowRight') keys.right = false;
+    if(e.key === 'ArrowUp') keys.accel = false;
+    if(e.key === 'ArrowDown') keys.brake = false;
+  });
+
+  // Touch controls
+  const leftBtn = document.getElementById('leftBtn');
+  const rightBtn = document.getElementById('rightBtn');
+  const accelBtn = document.getElementById('accelBtn');
+  const brakeBtn = document.getElementById('brakeBtn');
+
+  leftBtn.addEventListener('touchstart', e => { e.preventDefault(); movePlayerLeft(); });
+  rightBtn.addEventListener('touchstart', e => { e.preventDefault(); movePlayerRight(); });
+  accelBtn.addEventListener('touchstart', e => { e.preventDefault(); keys.accel = true; });
+  accelBtn.addEventListener('touchend', e => { e.preventDefault(); keys.accel = false; });
+  brakeBtn.addEventListener('touchstart', e => { e.preventDefault(); keys.brake = true; });
+  brakeBtn.addEventListener('touchend', e => { e.preventDefault(); keys.brake = false; });
+
+  // Start game
+  resetGame();
+
+  // Responsive resizing
+  window.addEventListener('resize', () => {
+    app.renderer.resize(window.innerWidth, window.innerHeight);
+    roadBg.width = ROAD_WIDTH;
+    roadBg.height = app.renderer.height;
+  });
+})();
+</script>
 </body>
 </html>
