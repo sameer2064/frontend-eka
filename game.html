@@ -435,51 +435,55 @@
       width: 800,
       height: 600,
       backgroundColor: 0x111111,
-      antialias: true
+      antialias: true,
+      transparent: false // Ensure background is not transparent
     });
 
     // ========== CAR DESIGN ==========
     const car = new PIXI.Container();
     
-    // Car body
+    // Car body - made brighter and more visible
     const carBody = new PIXI.Graphics();
-    carBody.beginFill(0x0066FF);
+    carBody.beginFill(0x0066FF); // Bright blue color
+    carBody.lineStyle(2, 0x003399); // Darker blue outline
     carBody.drawRoundedRect(-35, -60, 70, 120, 20);
     carBody.endFill();
     
-    // Car details
+    // Car details - made more visible
     carBody.beginFill(0x003399);
+    carBody.lineStyle(0); // No outline for inner details
     carBody.drawRoundedRect(-30, -50, 60, 100, 15);
     carBody.endFill();
     
-    // Windows
-    carBody.beginFill(0x99CCFF, 0.5);
+    // Windows - made more visible
+    carBody.beginFill(0x99CCFF, 0.7); // More opaque windows
     carBody.drawRoundedRect(-25, -40, 50, 30, 10);
     carBody.endFill();
     
-    // Headlights
+    // Headlights - made brighter
     carBody.beginFill(0xFFFF99);
     carBody.drawRect(-35, -55, 15, 10);
     carBody.drawRect(20, -55, 15, 10);
     carBody.endFill();
     
-    // Taillights
+    // Taillights - made brighter
     carBody.beginFill(0xFF3333);
     carBody.drawRect(-35, 50, 15, 10);
     carBody.drawRect(20, 50, 15, 10);
     carBody.endFill();
     
-    // Nitro effect placeholder
+    // Nitro effect placeholder - made more visible
     const nitroEffect = new PIXI.Graphics();
-    nitroEffect.beginFill(0x00FFFF, 0.7);
+    nitroEffect.beginFill(0x00FFFF, 0.9); // More opaque nitro
     nitroEffect.drawRect(-25, 60, 50, 30);
     nitroEffect.endFill();
     nitroEffect.visible = false;
     
-    // Wheels
+    // Wheels - made more visible
     const createWheel = (x, y) => {
       const wheel = new PIXI.Graphics();
       wheel.beginFill(0x222222);
+      wheel.lineStyle(2, 0x000000); // Added outline
       wheel.drawCircle(0, 0, 15);
       wheel.endFill();
       wheel.beginFill(0x444444);
@@ -496,9 +500,11 @@
     car.addChild(createWheel(25, -30));
     car.addChild(nitroEffect);
     
+    // Position the car
     car.x = gameState.carX;
     car.y = 500;
-    app.stage.addChild(road);
+    car.zIndex = 100; // Ensure car is on top
+    app.stage.addChild(car);
 
     // ========== ROAD & ENVIRONMENT ==========
     // Road with perspective
@@ -510,7 +516,7 @@
     road.lineTo(100, 600);
     road.closePath();
     road.endFill();
-    app.stage.addChild(road);
+    app.stage.addChildAt(road, 0); // Road at bottom layer
 
     // Road markings
     const roadMarkings = [];
@@ -521,7 +527,7 @@
       marking.endFill();
       marking.x = 400;
       marking.y = i * 40 - 40;
-      app.stage.addChild(marking);
+      app.stage.addChildAt(marking, 1); // Markings above road
       roadMarkings.push(marking);
     }
 
@@ -537,7 +543,7 @@
       leftDeco.endFill();
       leftDeco.x = 50 + Math.random() * 50;
       leftDeco.y = i * 100 - 100;
-      app.stage.addChild(leftDeco);
+      app.stage.addChildAt(leftDeco, 1); // Decorations above road
       sideDecorations.push(leftDeco);
       
       // Right side
@@ -547,7 +553,7 @@
       rightDeco.endFill();
       rightDeco.x = 710 + Math.random() * 50;
       rightDeco.y = i * 100 - 100;
-      app.stage.addChild(rightDeco);
+      app.stage.addChildAt(rightDeco, 1); // Decorations above road
       sideDecorations.push(rightDeco);
     }
 
