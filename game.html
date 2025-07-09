@@ -1,285 +1,1112 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Eka Racing</title>
-  <meta charset="utf‑8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eka Racing - Ultimate Street Racing</title>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Russo+One&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <style>
-    /* ... include all your original styles unchanged ... */
+    :root {
+      --primary: #FF3C3C;
+      --secondary: #00FFFF;
+      --accent: #FFCC00;
+      --dark: #0A0A0A;
+      --light: #FFFFFF;
+      --neon-glow: 0 0 10px var(--secondary), 0 0 20px var(--secondary);
+      --neon-glow-red: 0 0 10px var(--primary), 0 0 20px var(--primary);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Orbitron', sans-serif;
+      background: var(--dark);
+      color: var(--light);
+      overflow: hidden;
+      height: 100vh;
+      touch-action: manipulation;
+    }
+
+    #gameContainer {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    #gameCanvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* ========== ENHANCED UI ========== */
+    #gameUI {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 100;
+    }
+
+    .ui-panel {
+      position: absolute;
+      background: rgba(10, 10, 10, 0.7);
+      border: 1px solid var(--secondary);
+      border-radius: 15px;
+      padding: 1rem;
+      backdrop-filter: blur(10px);
+      box-shadow: var(--neon-glow);
+      transition: all 0.3s;
+    }
+
+    #scorePanel {
+      top: 20px;
+      left: 20px;
+      min-width: 180px;
+    }
+
+    #levelPanel {
+      top: 20px;
+      right: 20px;
+      min-width: 180px;
+    }
+
+    #speedPanel {
+      bottom: 100px;
+      left: 20px;
+      min-width: 180px;
+    }
+
+    .ui-title {
+      font-size: 1rem;
+      color: var(--secondary);
+      margin-bottom: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+    }
+
+    .ui-value {
+      font-size: 1.8rem;
+      color: var(--light);
+      text-shadow: var(--neon-glow);
+      font-weight: bold;
+    }
+
+    /* Enhanced Controls */
+    #controls {
+      position: absolute;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 25px;
+      pointer-events: auto;
+      z-index: 150;
+    }
+
+    .control-btn {
+      width: 80px;
+      height: 80px;
+      background: rgba(0, 255, 255, 0.15);
+      border: 2px solid var(--secondary);
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: var(--light);
+      font-size: 32px;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: var(--neon-glow);
+      backdrop-filter: blur(5px);
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .control-btn:active {
+      transform: scale(0.95);
+      background: rgba(0, 255, 255, 0.3);
+      box-shadow: 0 0 30px var(--secondary);
+    }
+
+    #exitBtn {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: rgba(255, 60, 60, 0.7);
+      border: none;
+      border-radius: 50px;
+      padding: 0.8rem 1.5rem;
+      color: var(--light);
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      cursor: pointer;
+      pointer-events: auto;
+      transition: all 0.3s;
+      box-shadow: var(--neon-glow-red);
+      z-index: 200;
+    }
+
+    #exitBtn:hover {
+      background: rgba(255, 60, 60, 0.9);
+      box-shadow: 0 0 30px var(--primary);
+    }
+
+    /* Enhanced Loading Screen */
+    #loadingScreen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.95);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 300;
+    }
+
+    .loader {
+      border: 5px solid rgba(0, 255, 255, 0.1);
+      border-top: 5px solid var(--secondary);
+      border-radius: 50%;
+      width: 80px;
+      height: 80px;
+      animation: spin 1.5s linear infinite;
+      margin-bottom: 2rem;
+      box-shadow: var(--neon-glow);
+    }
+
+    .loading-text {
+      font-family: 'Russo One', sans-serif;
+      font-size: 2rem;
+      color: var(--secondary);
+      text-shadow: var(--neon-glow);
+      letter-spacing: 5px;
+      margin-bottom: 1rem;
+    }
+
+    .loading-subtext {
+      color: var(--light);
+      letter-spacing: 2px;
+      font-size: 1rem;
+    }
+
+    /* Enhanced Game Over Screen */
+    #gameOverScreen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.9);
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 400;
+      backdrop-filter: blur(5px);
+    }
+
+    .game-over-title {
+      font-family: 'Russo One', sans-serif;
+      font-size: 5rem;
+      color: var(--primary);
+      text-shadow: 0 0 15px var(--primary), 0 0 30px var(--primary);
+      margin-bottom: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 5px;
+      animation: pulse 1.5s infinite alternate;
+    }
+
+    .final-score {
+      font-size: 2rem;
+      color: var(--light);
+      margin-bottom: 3rem;
+      text-shadow: var(--neon-glow);
+      letter-spacing: 2px;
+    }
+
+    .btn-container {
+      display: flex;
+      gap: 20px;
+    }
+
+    .game-btn {
+      padding: 1.2rem 2.5rem;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.2rem;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      color: var(--light);
+      background: linear-gradient(45deg, var(--primary), #FF6B6B);
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: all 0.3s;
+      box-shadow: var(--neon-glow-red);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .game-btn.secondary {
+      background: transparent;
+      border: 2px solid var(--secondary);
+      box-shadow: var(--neon-glow);
+    }
+
+    .game-btn:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 0 30px var(--primary);
+    }
+
+    .game-btn.secondary:hover {
+      box-shadow: 0 0 30px var(--secondary);
+    }
+
+    .game-btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      transition: 0.5s;
+    }
+
+    .game-btn:hover::before {
+      left: 100%;
+    }
+
+    /* Level Up Animation */
+    .level-up {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-family: 'Russo One', sans-serif;
+      font-size: 4rem;
+      color: var(--accent);
+      text-shadow: 0 0 15px var(--accent), 0 0 30px var(--accent);
+      animation: levelUp 2s forwards;
+      z-index: 350;
+      pointer-events: none;
+      text-transform: uppercase;
+      letter-spacing: 5px;
+    }
+
+    /* Animations */
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); opacity: 0.8; }
+      100% { transform: scale(1.1); opacity: 1; }
+    }
+
+    @keyframes levelUp {
+      0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+      50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+      100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+    }
+
+    @keyframes float {
+      0% { transform: translateY(0px); }
+      50% { transform: translateY(-20px); }
+      100% { transform: translateY(0px); }
+    }
+
+    /* Nitro Effect */
+    .nitro-effect {
+      position: absolute;
+      bottom: -20px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100px;
+      height: 50px;
+      background: linear-gradient(to top, rgba(0,255,255,0.8), transparent);
+      border-radius: 50% 50% 0 0;
+      filter: blur(10px);
+      z-index: 10;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .control-btn {
+        width: 60px;
+        height: 60px;
+        font-size: 24px;
+      }
+
+      #controls {
+        gap: 15px;
+      }
+
+      .ui-panel {
+        padding: 0.8rem;
+        min-width: 140px;
+      }
+
+      .ui-title {
+        font-size: 0.8rem;
+      }
+
+      .ui-value {
+        font-size: 1.4rem;
+      }
+
+      .game-over-title {
+        font-size: 3rem;
+      }
+
+      .final-score {
+        font-size: 1.5rem;
+      }
+
+      .game-btn {
+        padding: 1rem 1.8rem;
+        font-size: 1rem;
+      }
+    }
   </style>
 </head>
 <body>
   <div id="gameContainer">
     <canvas id="gameCanvas"></canvas>
-    <div id="gameUI"> ... </div>
-    <div id="loadingScreen"> ... </div>
-    <div id="gameOverScreen"> ... </div>
+    
+    <!-- Enhanced Game UI -->
+    <div id="gameUI">
+      <div class="ui-panel" id="scorePanel">
+        <div class="ui-title">Score</div>
+        <div class="ui-value" id="scoreDisplay">0</div>
+      </div>
+      
+      <div class="ui-panel" id="levelPanel">
+        <div class="ui-title">Level</div>
+        <div class="ui-value" id="levelDisplay">1</div>
+      </div>
+      
+      <div class="ui-panel" id="speedPanel">
+        <div class="ui-title">Speed</div>
+        <div class="ui-value" id="speedDisplay">0</div>
+      </div>
+      
+      <button id="exitBtn">
+        <i class="fas fa-times"></i> Exit
+      </button>
+      
+      <div id="controls">
+        <div class="control-btn" id="leftBtn"><i class="fas fa-arrow-left"></i></div>
+        <div class="control-btn" id="rightBtn"><i class="fas fa-arrow-right"></i></div>
+        <div class="control-btn" id="brakeBtn"><i class="fas fa-hand-paper"></i></div>
+        <div class="control-btn" id="acceleratorBtn"><i class="fas fa-bolt"></i></div>
+      </div>
+    </div>
+    
+    <!-- Loading Screen -->
+    <div id="loadingScreen">
+      <div class="loader"></div>
+      <div class="loading-text">EKA RACING</div>
+      <div class="loading-subtext">Loading Ultimate Racing Experience...</div>
+    </div>
+    
+    <!-- Game Over Screen -->
+    <div id="gameOverScreen">
+      <div class="game-over-title">Game Over</div>
+      <div class="final-score" id="finalScore">Your Score: 0</div>
+      <div class="btn-container">
+        <button class="game-btn" id="restartBtn">
+          <i class="fas fa-redo"></i> Race Again
+        </button>
+        <button class="game-btn secondary" id="menuBtn">
+          <i class="fas fa-home"></i> Main Menu
+        </button>
+      </div>
+    </div>
   </div>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.2.4/pixi.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
   <script>
-  // ===== CONFIG & STATE =====
-  const config = { /* same as yours */ };
-  const gameState = {
-    score:0, level:1, speed:0, maxSpeed: config.car.maxSpeed,
-    obstacleInterval: config.game.obstacleInterval,
-    carX: window.innerWidth / 2,
-    coins:[], obstacles:[], effects:[],
-    lastCoinTime: 0, lastObstacleTime: 0,
-    gameActive:false, loading:true, nitroActive:false, nitroTimeout:null,
-    keys:{ ArrowLeft:false, ArrowRight:false, ArrowUp:false, ArrowDown:false }
-  };
+    // ========== GAME CONFIGURATION ==========
+    const config = {
+      car: {
+        width: 70,
+        height: 120,
+        acceleration: 0.05,
+        deceleration: 0.1,
+        nitroBoost: 2,
+        nitroDuration: 2000,
+        maxSpeed: 8,
+        minSpeed: 1,
+        laneBounds: { left: 200, right: 600 }
+      },
+      game: {
+        coinInterval: 800,
+        obstacleInterval: 2000,
+        baseLevelScore: 15,
+        levelDifficultyMultiplier: 1.5,
+        speedIncreasePerLevel: 1,
+        obstacleIntervalReduction: 200,
+        minObstacleInterval: 800
+      },
+      ui: {
+        speedMultiplier: 10 // For display purposes
+      }
+    };
 
-  // ===== PIXI SETUP =====
-  const app = new PIXI.Application({
-    view: document.getElementById("gameCanvas"),
-    width:window.innerWidth, height:window.innerHeight,
-    backgroundColor:0x111111, antialias:true,
-    resolution: window.devicePixelRatio || 1,
-    autoDensity: true
-  });
-  window.addEventListener('resize', ()=>{
-    app.renderer.resize(window.innerWidth, window.innerHeight);
-  });
+    // ========== GAME STATE ==========
+    const gameState = {
+      score: 0,
+      speed: 0,
+      carX: 400,
+      coins: [],
+      obstacles: [],
+      effects: [],
+      gameActive: false,
+      loading: true,
+      lastCoinTime: 0,
+      lastObstacleTime: 0,
+      level: 1,
+      scoreToNextLevel: config.game.baseLevelScore,
+      nitroActive: false,
+      nitroTimeout: null,
+      keys: {
+        ArrowLeft: false,
+        ArrowRight: false,
+        ArrowUp: false,
+        ArrowDown: false
+      }
+    };
 
-  // ===== ROAD & MARKINGS =====
-  const road = new PIXI.Graphics();
-  road.beginFill(0x333333);
-  road.moveTo(window.innerWidth*0.2,0);
-  road.lineTo(window.innerWidth*0.8,0);
-  road.lineTo(window.innerWidth*0.85, window.innerHeight);
-  road.lineTo(window.innerWidth*0.15, window.innerHeight);
-  road.closePath(); road.endFill();
-  app.stage.addChild(road);
+    // ========== PIXI SETUP ==========
+    const app = new PIXI.Application({
+      view: document.getElementById("gameCanvas"),
+      width: window.innerWidth,
+      height: window.innerHeight,
+      backgroundColor: 0x111111,
+      antialias: true,
+      resolution: window.devicePixelRatio || 1,
+      autoDensity: true
+    });
 
-  const roadMarkings = [];
-  for(let i=0;i<20;i++){
-    const m = new PIXI.Graphics();
-    m.beginFill(0xFFFFFF,0.8);
-    m.drawRect(-4,-20,8,40);
-    m.endFill();
-    m.x = window.innerWidth/2;
-    m.y = i*40-40;
-    app.stage.addChild(m);
-    roadMarkings.push(m);
-  }
+    // Handle window resize
+    window.addEventListener('resize', () => {
+      app.renderer.resize(window.innerWidth, window.innerHeight);
+    });
 
-  // ===== CAR SETUP =====
-  const car = new PIXI.Container();
-  const carBody = new PIXI.Graphics();
-  carBody.beginFill(0x0066FF);
-  carBody.drawRoundedRect(-35,-60,70,120,20);
-  carBody.endFill();
-  // add windows, headlights, taillights (same as yours)
-  car.addChild(carBody);
-  const createWheel=(x,y)=>{
-    const w=new PIXI.Graphics();
-    w.beginFill(0x222);
-    w.drawCircle(0,0,15);
-    w.endFill();
-    w.beginFill(0x444);
-    w.drawCircle(0,0,10);
-    w.endFill();
-    w.position.set(x,y); return w;
-  };
-  car.addChild(createWheel(-25,40),createWheel(25,40),createWheel(-25,-30),createWheel(25,-30));
-  const nitroEffect = new PIXI.Graphics();
-  nitroEffect.beginFill(0x00FFFF,0.7);
-  nitroEffect.drawRect(-25,60,50,30);
-  nitroEffect.endFill();
-  nitroEffect.visible=false;
-  car.addChild(nitroEffect);
-  car.x=gameState.carX; car.y=window.innerHeight*0.8;
-  app.stage.addChild(car);
+    // ========== GAME OBJECTS ==========
+    // Road with perspective
+    const road = new PIXI.Graphics();
+    road.beginFill(0x333333);
+    road.moveTo(window.innerWidth * 0.2, 0);
+    road.lineTo(window.innerWidth * 0.8, 0);
+    road.lineTo(window.innerWidth * 0.85, window.innerHeight);
+    road.lineTo(window.innerWidth * 0.15, window.innerHeight);
+    road.closePath();
+    road.endFill();
+    app.stage.addChild(road);
 
-  // ===== SOUNDS =====
-  const sounds = {
-    engine: new Howl({src:['https://assets.codepen.io/21542/engine-sound.mp3'],loop:true,volume:0.3}),
-    nitro: new Howl({src:['https://assets.codepen.io/21542/nitro-sound.mp3'],volume:0.5}),
-    crash: new Howl({src:['https://assets.codepen.io/21542/crash-sound.mp3'],volume:0.7}),
-    coin: new Howl({src:['https://assets.codepen.io/21542/coin-sound.mp3'],volume:0.4}),
-  };
-
-  // ===== SPAWNER, COLLISION, EFFECTS, LEVEL-UP =====
-  // Copy your implementations for createCoin, createObstacle, checkCollisions, checkLevelUp, createEffect, etc.
-  // Just ensure obstacleInterval and lastObstacleTime are initialized/reset properly.
-
-  // ===== MOVEMENT & NITRO FUNCTIONS =====
-  function moveLeft(){ gameState.carX=Math.max(config.car.laneBounds.left, gameState.carX-8); car.x=gameState.carX;}
-  function moveRight(){ gameState.carX=Math.min(config.car.laneBounds.right, gameState.carX+8); car.x=gameState.carX;}
-  function accelerate(){
-    if(gameState.nitroActive){
-      gameState.speed=Math.min(gameState.maxSpeed*config.car.nitroBoost, gameState.speed+config.car.acceleration*2);
-    } else {
-      gameState.speed=Math.min(gameState.maxSpeed, gameState.speed+config.car.acceleration);
+    // Road markings
+    const roadMarkings = [];
+    for (let i = 0; i < 20; i++) {
+      const marking = new PIXI.Graphics();
+      marking.beginFill(0xFFFFFF, 0.8);
+      marking.drawRect(-4, -20, 8, 40);
+      marking.endFill();
+      marking.x = window.innerWidth / 2;
+      marking.y = i * 40 - 40;
+      app.stage.addChild(marking);
+      roadMarkings.push(marking);
     }
-  }
-  function brake(){
-    gameState.speed=Math.max(config.car.minSpeed, gameState.speed-config.car.deceleration);
-    deactivateNitro();
-  }
-  function activateNitro(){
-    if(gameState.speed > gameState.maxSpeed*0.7 && !gameState.nitroActive){
-      gameState.nitroActive = true;
-      sounds.nitro.play();
-      nitroEffect.visible = true;
-      clearTimeout(gameState.nitroTimeout);
-      gameState.nitroTimeout = setTimeout(deactivateNitro, config.car.nitroDuration);
-    }
-  }
-  function deactivateNitro(){
-    gameState.nitroActive = false;
+
+    // Car design
+    const car = new PIXI.Container();
+    
+    // Car body
+    const carBody = new PIXI.Graphics();
+    carBody.beginFill(0x0066FF);
+    carBody.drawRoundedRect(-35, -60, 70, 120, 20);
+    carBody.endFill();
+    
+    // Car details
+    carBody.beginFill(0x003399);
+    carBody.drawRoundedRect(-30, -50, 60, 100, 15);
+    carBody.endFill();
+    
+    // Windows
+    carBody.beginFill(0x99CCFF, 0.5);
+    carBody.drawRoundedRect(-25, -40, 50, 30, 10);
+    carBody.endFill();
+    
+    // Headlights
+    carBody.beginFill(0xFFFF99);
+    carBody.drawRect(-35, -55, 15, 10);
+    carBody.drawRect(20, -55, 15, 10);
+    carBody.endFill();
+    
+    // Taillights
+    carBody.beginFill(0xFF3333);
+    carBody.drawRect(-35, 50, 15, 10);
+    carBody.drawRect(20, 50, 15, 10);
+    carBody.endFill();
+    
+    // Nitro effect
+    const nitroEffect = new PIXI.Graphics();
+    nitroEffect.beginFill(0x00FFFF, 0.7);
+    nitroEffect.drawRect(-25, 60, 50, 30);
+    nitroEffect.endFill();
     nitroEffect.visible = false;
-    clearTimeout(gameState.nitroTimeout);
-    gameState.nitroTimeout = null;
-  }
-
-  // ===== UPDATE UI =====
-  function updateScoreDisplay(){document.getElementById('scoreDisplay').textContent=gameState.score;}
-  function updateLevelDisplay(){document.getElementById('levelDisplay').textContent=gameState.level;}
-  function updateSpeedDisplay(){document.getElementById('speedDisplay').textContent=Math.floor(gameState.speed*config.ui.speedMultiplier);}
-
-  // ===== GAME LOOP =====
-  function gameLoop(delta){
-    if(!gameState.gameActive) return;
-
-    if(gameState.keys.ArrowLeft) moveLeft();
-    if(gameState.keys.ArrowRight) moveRight();
-    if(gameState.keys.ArrowUp) accelerate();
-    if(gameState.keys.ArrowDown) brake();
-
-    nitroEffect.visible=gameState.nitroActive;
-    if(gameState.nitroActive){
-      nitroEffect.clear();
-      nitroEffect.beginFill(0x00FFFF,0.6 - Math.random()*0.2);
-      nitroEffect.drawRect(-25 - Math.random()*10,60,50 + Math.random()*20,30 + Math.random()*20);
-      nitroEffect.endFill();
-    }
-
-    roadMarkings.forEach(m=>{
-      m.y += gameState.speed;
-      if(m.y > window.innerHeight) m.y = -40;
-      const scale = 0.6 + (m.y / window.innerHeight)*0.4;
-      m.scale.set(scale);
-    });
-
-    createCoin(); createObstacle();
-
-    gameState.coins.forEach((coin,i)=>{
-      coin.y += gameState.speed;
-      coin.sprite.y = coin.y;
-      coin.update && coin.update();
-      if(coin.y > window.innerHeight + 50){
-        app.stage.removeChild(coin.sprite);
-        gameState.coins.splice(i,1);
-      }
-    });
-
-    gameState.obstacles.forEach((obs,i)=>{
-      obs.y += gameState.speed;
-      obs.sprite.y = obs.y;
-      if(obs.y > window.innerHeight + obs.height){
-        app.stage.removeChild(obs.sprite);
-        gameState.obstacles.splice(i,1);
-      }
-    });
-
-    checkCollisions();
-    gameState.effects.forEach((eff,i)=>{
-      eff.alpha -= 0.02;
-      eff.sprite.alpha = eff.alpha;
-      eff.sprite.scale.x *= 0.98;
-      eff.sprite.scale.y *= 0.98;
-      if(eff.alpha <= 0){
-        app.stage.removeChild(eff.sprite);
-        gameState.effects.splice(i,1);
-      }
-    });
-
-    updateSpeedDisplay();
-  }
-
-  // ===== GAME START / RESET =====
-  function resetGame(){
-    gameState.coins.forEach(c=>app.stage.removeChild(c.sprite));
-    gameState.obstacles.forEach(o=>app.stage.removeChild(o.sprite));
-    gameState.effects.forEach(e=>app.stage.removeChild(e.sprite));
-
-    Object.assign(gameState,{
-      score:0, speed:0, maxSpeed: config.car.maxSpeed,
-      carX: window.innerWidth/2, coins:[], obstacles:[], effects:[],
-      level:1, scoreToNextLevel:config.game.baseLevelScore,
-      obstacleInterval: config.game.obstacleInterval,
-      gameActive:true, nitroActive:false
-    });
-    clearTimeout(gameState.nitroTimeout);
-    updateScoreDisplay(); updateLevelDisplay(); updateSpeedDisplay();
+    
+    // Wheels
+    const createWheel = (x, y) => {
+      const wheel = new PIXI.Graphics();
+      wheel.beginFill(0x222222);
+      wheel.drawCircle(0, 0, 15);
+      wheel.endFill();
+      wheel.beginFill(0x444444);
+      wheel.drawCircle(0, 0, 10);
+      wheel.endFill();
+      wheel.position.set(x, y);
+      return wheel;
+    };
+    
+    car.addChild(carBody);
+    car.addChild(createWheel(-25, 40));
+    car.addChild(createWheel(25, 40));
+    car.addChild(createWheel(-25, -30));
+    car.addChild(createWheel(25, -30));
+    car.addChild(nitroEffect);
+    
     car.x = gameState.carX;
-    document.getElementById('gameOverScreen').style.display = 'none';
-    sounds.engine.play();
-  }
+    car.y = window.innerHeight * 0.8;
+    app.stage.addChild(car);
 
-  function gameOver(){
-    gameState.gameActive = false;
-    sounds.engine.stop(); sounds.crash.play();
-    document.getElementById('finalScore').textContent = `Your Score: ${gameState.score}`;
-    document.getElementById('gameOverScreen').style.display = 'flex';
-    for(let i=0;i<30;i++){
-      createEffect(car.x + (Math.random()*60-30), car.y + (Math.random()*60-30), 0xFF3333, Math.random()*20+10);
+    // ========== SOUNDS ==========
+    const sounds = {
+      engine: new Howl({ src: ['https://assets.codepen.io/21542/engine-sound.mp3'], loop: true, volume: 0.3 }),
+      nitro: new Howl({ src: ['https://assets.codepen.io/21542/nitro-sound.mp3'], volume: 0.5 }),
+      crash: new Howl({ src: ['https://assets.codepen.io/21542/crash-sound.mp3'], volume: 0.7 }),
+      coin: new Howl({ src: ['https://assets.codepen.io/21542/coin-sound.mp3'], volume: 0.4 })
+    };
+
+    // ========== GAME SYSTEMS ==========
+    // Coin system
+    function createCoin() {
+      const now = Date.now();
+      if (now - gameState.lastCoinTime < config.game.coinInterval) return;
+      
+      gameState.lastCoinTime = now;
+      
+      const coin = new PIXI.Graphics();
+      coin.beginFill(0xFFD700);
+      coin.drawCircle(0, 0, 12);
+      coin.endFill();
+      coin.beginFill(0xFFFF00);
+      coin.drawCircle(0, 0, 8);
+      coin.endFill();
+      
+      coin.x = Math.random() * (window.innerWidth * 0.6) + (window.innerWidth * 0.2);
+      coin.y = -50;
+      app.stage.addChild(coin);
+      
+      // Add shine effect
+      const shine = new PIXI.Graphics();
+      shine.beginFill(0xFFFFFF, 0.8);
+      shine.moveTo(0, 0);
+      shine.lineTo(8, -8);
+      shine.lineTo(0, -12);
+      shine.closePath();
+      shine.endFill();
+      shine.rotation = Math.PI / 4;
+      coin.addChild(shine);
+      
+      // Add animation
+      let angle = 0;
+      coin.update = () => {
+        angle += 0.1;
+        shine.rotation = angle;
+      };
+      
+      gameState.coins.push({
+        sprite: coin,
+        x: coin.x,
+        y: coin.y,
+        id: performance.now() + Math.random(),
+        update: coin.update
+      });
     }
-  }
 
-  function startGame(){
-    document.getElementById('loadingScreen').style.display='none';
-    gameState.loading = false;
-    gameState.gameActive = true;
-    updateScoreDisplay(); updateLevelDisplay(); updateSpeedDisplay();
-    sounds.engine.play();
-    app.ticker.add(gameLoop);
-  }
-
-  setTimeout(startGame, 2000);
-
-  // ===== KEY & TOUCH BINDINGS =====
-  window.addEventListener('keydown', e=>{
-    if(!gameState.gameActive) return;
-    if(e.key in gameState.keys) gameState.keys[e.key] = true;
-    if(e.key === ' ') activateNitro();
-  });
-  window.addEventListener('keyup', e=>{
-    if(e.key in gameState.keys) gameState.keys[e.key] = false;
-  });
-
-  ['leftBtn','rightBtn','acceleratorBtn','brakeBtn'].forEach(btnId=>{
-    const mapping = {
-      leftBtn: 'ArrowLeft', rightBtn: 'ArrowRight',
-      acceleratorBtn: 'ArrowUp', brakeBtn: 'ArrowDown'
-    }[btnId];
-    const btn = document.getElementById(btnId);
-    btn.addEventListener('pointerdown', e=>{
-      gameState.keys[mapping] = true;
-      if(btnId==='acceleratorBtn'){
-        const now = performance.now();
-        if(now - (btn.lastTap||0) < 300) activateNitro();
-        btn.lastTap = now;
+    // Obstacle system
+    function createObstacle() {
+      const now = Date.now();
+      if (now - gameState.lastObstacleTime < gameState.obstacleInterval) return;
+      
+      gameState.lastObstacleTime = now;
+      
+      const types = [
+        { color: 0xFF0000, width: 60, height: 40 }, // Red car
+        { color: 0x888888, width: 70, height: 100 }, // Truck
+        { color: 0x00AA00, width: 50, height: 50 } // Crate
+      ];
+      
+      const type = types[Math.floor(Math.random() * types.length)];
+      const obstacle = new PIXI.Graphics();
+      obstacle.beginFill(type.color);
+      
+      if (type.height > 60) { // Truck
+        obstacle.drawRect(-type.width/2, -type.height/2, type.width, type.height/2);
+        obstacle.drawRect(-type.width/3, -type.height, type.width/1.5, type.height/2);
+      } else {
+        obstacle.drawRoundedRect(-type.width/2, -type.height/2, type.width, type.height, 5);
       }
-    });
-    btn.addEventListener('pointerup', e=>{
-      gameState.keys[mapping] = false;
-    });
-    btn.addEventListener('pointerleave', e=>{
-      gameState.keys[mapping] = false;
-    });
-  });
+      
+      obstacle.endFill();
+      
+      // Add details
+      if (type.color === 0xFF0000) { // Car windows
+        obstacle.beginFill(0x99CCFF, 0.5);
+        obstacle.drawRect(-type.width/3, -type.height/3, type.width/1.5, type.height/3);
+        obstacle.endFill();
+      }
+      
+      obstacle.x = Math.random() * (window.innerWidth * 0.6) + (window.innerWidth * 0.2);
+      obstacle.y = -type.height;
+      app.stage.addChild(obstacle);
+      
+      gameState.obstacles.push({
+        sprite: obstacle,
+        x: obstacle.x,
+        y: obstacle.y,
+        width: type.width,
+        height: type.height,
+        id: performance.now() + Math.random()
+      });
+    }
 
-  document.getElementById('exitBtn').addEventListener('click',()=>{
-    window.location.href='index.html';
-  });
-  document.getElementById('restartBtn').addEventListener('click', resetGame);
-  document.getElementById('menuBtn').addEventListener('click', ()=> window.location.href='index.html');
+    // Level system
+    function checkLevelUp() {
+      if (gameState.score >= gameState.scoreToNextLevel) {
+        gameState.level++;
+        gameState.scoreToNextLevel = Math.floor(gameState.scoreToNextLevel * config.game.levelDifficultyMultiplier);
+        gameState.maxSpeed += config.game.speedIncreasePerLevel;
+        gameState.obstacleInterval = Math.max(
+          config.game.minObstacleInterval, 
+          gameState.obstacleInterval - config.game.obstacleIntervalReduction
+        );
+        
+        updateLevelDisplay();
+        showLevelUp();
+      }
+    }
 
+    function showLevelUp() {
+      const levelUp = document.createElement('div');
+      levelUp.className = 'level-up';
+      levelUp.textContent = `LEVEL ${gameState.level}!`;
+      document.getElementById('gameContainer').appendChild(levelUp);
+      
+      setTimeout(() => {
+        levelUp.remove();
+      }, 2000);
+    }
+
+    // Collision detection
+    function checkCollisions() {
+      const carBounds = {
+        left: car.x - config.car.width/2,
+        right: car.x + config.car.width/2,
+        top: car.y - config.car.height/2,
+        bottom: car.y + config.car.height/2
+      };
+      
+      // Check coins
+      for (let i = gameState.coins.length - 1; i >= 0; i--) {
+        const coin = gameState.coins[i];
+        const coinBounds = {
+          left: coin.x - 12,
+          right: coin.x + 12,
+          top: coin.y - 12,
+          bottom: coin.y + 12
+        };
+        
+        if (carBounds.right > coinBounds.left && 
+            carBounds.left < coinBounds.right &&
+            carBounds.bottom > coinBounds.top &&
+            carBounds.top < coinBounds.bottom) {
+          
+          // Remove coin
+          app.stage.removeChild(coin.sprite);
+          gameState.coins.splice(i, 1);
+          
+          // Increase score
+          gameState.score += 5;
+          updateScoreDisplay();
+          sounds.coin.play();
+          
+          // Check for level up
+          checkLevelUp();
+          
+          // Create collection effect
+          createEffect(coin.x, coin.y, 0xFFFF00, 25);
+        }
+      }
+      
+      // Check obstacles
+      for (const obstacle of gameState.obstacles) {
+        const obstacleBounds = {
+          left: obstacle.x - obstacle.width/2,
+          right: obstacle.x + obstacle.width/2,
+          top: obstacle.y - obstacle.height/2,
+          bottom: obstacle.y + obstacle.height/2
+        };
+        
+        if (carBounds.right > obstacleBounds.left && 
+            carBounds.left < obstacleBounds.right &&
+            carBounds.bottom > obstacleBounds.top &&
+            carBounds.top < obstacleBounds.bottom) {
+          gameOver();
+          break;
+        }
+      }
+    }
+
+    // Effects system
+    function createEffect(x, y, color, size) {
+      const effect = new PIXI.Graphics();
+      effect.beginFill(color, 0.7);
+      effect.drawCircle(0, 0, size);
+      effect.endFill();
+      effect.x = x;
+      effect.y = y;
+      app.stage.addChild(effect);
+      
+      gameState.effects.push({
+        sprite: effect,
+        alpha: 1,
+        id: performance.now() + Math.random()
+      });
+    }
+
+    function updateEffects() {
+      for (let i = gameState.effects.length - 1; i >= 0; i--) {
+        const effect = gameState.effects[i];
+        effect.alpha -= 0.02;
+        effect.sprite.alpha = effect.alpha;
+        effect.sprite.scale.x *= 0.98;
+        effect.sprite.scale.y *= 0.98;
+        
+        if (effect.alpha <= 0) {
+          app.stage.removeChild(effect.sprite);
+          gameState.effects.splice(i, 1);
+        }
+      }
+    }
+
+    // ========== GAME CONTROLS ==========
+    function moveLeft() {
+      gameState.carX = Math.max(config.car.laneBounds.left, gameState.carX - 8);
+      car.x = gameState.carX;
+    }
+
+    function moveRight() {
+      gameState.carX = Math.min(config.car.laneBounds.right, gameState.carX + 8);
+      car.x = gameState.carX;
+    }
+
+    function accelerate() {
+      if (gameState.nitroActive) {
+        gameState.speed = Math.min(
+          gameState.maxSpeed * config.car.nitroBoost, 
+          gameState.speed + config.car.acceleration * 2
+        );
+      } else {
+        gameState.speed = Math.min(
+          gameState.maxSpeed, 
+          gameState.speed + config.car.acceleration
+        );
+      }
+    }
+
+    function brake() {
+      gameState.speed = Math.max(
+        config.car.minSpeed, 
+        gameState.speed - config.car.deceleration
+      );
+      deactivateNitro();
+    }
+
+    function activateNitro() {
+      if (gameState.speed > gameState.maxSpeed * 0.7 && !gameState.nitroActive) {
+        gameState.nitroActive = true;
+        sounds.nitro.play();
+        
+        // Clear any existing nitro timeout
+        if (gameState.nitroTimeout) {
+          clearTimeout(gameState.nitroTimeout);
+        }
+        
+        gameState.nitroTimeout = setTimeout(() => {
+          deactivateNitro();
+        }, config.car.nitroDuration);
+      }
+    }
+
+    function deactivateNitro() {
+      gameState.nitroActive = false;
+      nitroEffect.visible = false;
+      
+      if (gameState.nitroTimeout) {
+        clearTimeout(gameState.nitroTimeout);
+        gameState.nitroTimeout = null;
+      }
+    }
+
+    // ========== GAME LOOP ==========
+    function gameLoop(delta) {
+      if (!gameState.gameActive) return;
+      
+      // Update car position based on keyboard state
+      if (gameState.keys.ArrowLeft) moveLeft();
+      if (gameState.keys.ArrowRight) moveRight();
+      if (gameState.keys.ArrowUp) accelerate();
+      if (gameState.keys.ArrowDown) brake();
+      
+      // Update nitro effect
+      nitroEffect.visible = gameState.nitroActive;
+      if (gameState.nitroActive) {
+        nitroEffect.clear();
+        nitroEffect.beginFill(0x00FFFF, 0.6 - Math.random() * 0.2);
+        nitroEffect.drawRect(
+          -25 - Math.random() * 10, 
+          60, 
+          50 + Math.random() * 20, 
+          30 + Math.random() * 20
+        );
+        nitroEffect.endFill();
+      }
+      
+      // Update road markings with perspective
+      roadMarkings.forEach(marking => {
+        marking.y += gameState.speed;
+        if (marking.y > window.innerHeight) marking.y = -40;
+        
+        const scale = 0.6 + (marking.y / window.innerHeight) * 0.4;
+        marking.scale.set(scale);
+      });
+      
+      // Create new coins and obstacles
+      createCoin();
+      createObstacle();
+      
+      // Move coins
+      for (let i = gameState.coins.length - 1; i >= 0; i--) {
+        const coin = gameState.coins[i];
+        coin.y += gameState.speed;
+        coin.sprite.y = coin.y;
+        if (coin.update) coin.update();
+        
+        // Remove off-screen coins
+        if (coin.y > window.innerHeight + 50) {
+          app.stage.removeChild(coin.sprite);
+          gameState.coins.splice(i, 1);
+        }
+      }
+      
+      // Move obstacles
+      for (let i = gameState.obstacles.length - 1; i >= 0; i--) {
+        const obstacle = gameState.obstacles[i];
+        obstacle.y += gameState.speed;
+        obstacle.sprite.y = obstacle.y;
+        
+        // Remove off-screen obstacles
+        if (obstacle.y > window.innerHeight + obstacle.height) {
+          app.stage.removeChild(obstacle.sprite);
+          gameState.obstacles.splice(i, 1);
+        }
+      }
+      
+      // Check collisions
+      checkCollisions();
+      
+      // Update effects
+      updateEffects();
+      
+      // Update speed display
+      updateSpeedDisplay();
+    }
+
+    // ========== GAME STATE MANAGEMENT ==========
+    function gameOver() {
+      gameState.gameActive = false;
+      sounds.engine.stop();
+      sounds.crash.play();
+      
+      document.getElementById('finalScore').textContent = `Your Score: ${gameState.score}`;
+      document.getElementById('gameOverScreen').style.display = 'flex';
+      
+      // Create explosion effect
+      for (let i = 0; i < 30; i++) {
+        createEffect(
+          car.x + Math.random() * 60 - 30,
+          car.y + Math.random() * 60 - 30,
+          0xFF3333,
+          Math.random() * 20 + 10
+        );
+      }
+    }
+
+    function resetGame() {
+      // Clear all game objects
+      gameState.coins.forEach(coin => app.stage.removeChild(coin.sprite));
+      gameState.obstacles.forEach(obs => app.stage.removeChild(obs.sprite));
+      gameState.effects.forEach(effect => app.stage.removeChild(effect.sprite));
+      
+      // Reset game state
+      gameState.score = 0;
+      gameState.speed = 0;
+      gameState.maxSpeed = config.car.maxSpeed;
+      gameState.carX = window.innerWidth / 2;
+      gameState.coins = [];
+      gameState.obstacles = [];
+      gameState.effects = [];
+      gameState.level = 1;
+      gameState.scoreToNextLevel = config.game.baseLevelScore;
+      gameState.obstacleInterval = config.game.obstacleInterval;
+      gameState.gameActive = true;
+      deactivateNitro();
+      
+      // Reset display
+      updateScoreDisplay();
+      updateLevelDisplay();
+      updateSpeedDisplay();
+      document.getElementById('gameOverScreen').style.display = 'none';
+      
+      // Reset car position
+      car.x = gameState.carX;
+      car.y = window.innerHeight * 0.8;
+      
+      // Restart engine sound
+      sounds.engine.play();
+    }
+
+    // ========== UI UPDATES ==========
+    function updateScoreDisplay() {
+      document.getElementById('scoreDisplay').textContent = gameState.score;
+    }
+
+    function updateLevelDisplay() {
+      document.getElementById('levelDisplay').textContent = gameState.level;
+    }
+
+    function updateSpeedDisplay() {
+      document.getElementById('speedDisplay').textContent = Math.floor(gameState.speed * config.ui.speedMultiplier);
+    }
+
+    // ========== EVENT LISTENERS ==========
+    // Keyboard controls
+    window.addEventListener('keydown', (e) => {
+      if (!gameState.gameActive) return;
+      
+      if (e.key === 'ArrowLeft') gameState.keys.ArrowLeft = true;
+      if (e.key === 'ArrowRight') gameState.keys.ArrowRight = true;
+      if (e.key === 'ArrowUp') gameState.keys.ArrowUp = true;
+      if (e.key === 'ArrowDown') gameState.keys.ArrowDown = true;
+      if (e.key === ' ') activateNitro();
+    });
+    
+    window.addEventListener('keyup', (e) => {
+      if (e.key === 'ArrowLeft') gameState.keys.ArrowLeft = false;
+      if (e.key === 'ArrowRight') gameState.keys.ArrowRight = false;
+      if (e.key === 'ArrowUp') gameState.keys.ArrowUp = false;
+      if (e.key === 'ArrowDown') gameState.keys.ArrowDown = false;
+    });
+    
+    // Touch controls
+    function setupButton(buttonId, key) {
+      const button = document.getElementById(buttonId);
+      
+      const startEvent = (e) => {
+        e.preventDefault();
+        gameState.keys[key] = true;
+      };
+      
+      const endEvent = (e) => {
+        e.preventDefault();
+        gameState.keys[key] = false;
+      };
+      
+      button.addEventListener('mousedown', startEvent);
+      button.addEventListener('touchstart', startEvent);
+      button.addEventListener('mouseup', endEvent);
+      button.addEventListener('touchend', endEvent);
+      button.addEventListener('mouseleave', endEvent);
+    }
+    
+    setupButton('leftBtn', 'ArrowLeft');
+    setupButton('rightBtn', 'ArrowRight');
+    setupButton('acceleratorBtn', 'ArrowUp');
+    setupButton('brakeBtn', 'ArrowDown');
+    
+    // Nitro via double-tap on accelerator
+    document.getElementById('acceleratorBtn').addEventListener('dblclick', (e) => {
+      e.preventDefault();
+      activateNitro();
+    });
+    
+    let lastTap = 0;
+    document.getElementById('acceleratorBtn').addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      const currentTime = new Date().getTime();
+      const tapLength = currentTime - lastTap;
+      if (tapLength < 300 && tapLength > 0) {
+        activateNitro();
+      }
+      lastTap = currentTime;
+    });
+
+    // Exit button
+    document.getElementById('exitBtn').addEventListener('click', () => {
+      window.location.href = 'index.html';
+    });
+
+    // Restart button
+    document.getElementById('restartBtn').addEventListener('click', () => {
+      resetGame();
+    });
+
+    // Menu button (return to main menu)
+    document.getElementById('menuBtn').addEventListener('click', () => {
+      window.location.href = 'index.html';
+    });
+
+    // ========== INITIALIZATION ==========
+    function startGame() {
+      document.getElementById('loadingScreen').style.display = 'none';
+      gameState.gameActive = true;
+      sounds.engine.play();
+      app.ticker.add(gameLoop);
+    }
+
+    // Simulate a loading delay (for loading screen)
+    setTimeout(() => {
+      gameState.loading = false;
+      startGame();
+    }, 2000);
   </script>
 </body>
 </html>
